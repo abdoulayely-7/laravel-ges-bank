@@ -8,37 +8,16 @@ services:
         value: production
       - key: APP_KEY
         generateValue: true
-      - key: DB_CONNECTION
-        value: pgsql
-      - key: DB_HOST
+      - key: DATABASE_URL
         fromService:
           type: pserv
           name: ges-bank-db
-          property: host
-      - key: DB_PORT
-        fromService:
-          type: pserv
-          name: ges-bank-db
-          property: port
-      - key: DB_DATABASE
-        fromService:
-          type: pserv
-          name: ges-bank-db
-          property: database
-      - key: DB_USERNAME
-        fromService:
-          type: pserv
-          name: ges-bank-db
-          property: user
-      - key: DB_PASSWORD
-        fromService:
-          type: pserv
-          name: ges-bank-db
-          property: password
+          property: connectionString
       - key: L5_SWAGGER_GENERATE_ALWAYS
         value: false
 
-  - type: pserv
-    name: ges-bank-db
-    runtime: postgres
+databases:
+  - name: ges-bank-db
+    databaseName: ges_bank_prod
+    user: ges_bank_user
     plan: starter

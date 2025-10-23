@@ -114,9 +114,10 @@ Tous les fichiers nécessaires sont créés. Voici ce que vous devez faire :
 - ✅ **Production-ready** : Optimisé pour la production
 
 ### 3.3 Note importante :
-- Les variables de base de données utilisent maintenant `DATABASE_URL` (connection string complète)
+- Utilisation de `databases` au lieu de `services` pour PostgreSQL
+- `DATABASE_URL` contient automatiquement toutes les informations de connexion
 - Render gère automatiquement la génération des credentials de base de données
-- Le script `build.sh` utilise les variables d'environnement Render
+- Le script `build.sh` utilise `DATABASE_URL` pour les migrations
 
 ## Étape 4 : Migration de la base de données
 
