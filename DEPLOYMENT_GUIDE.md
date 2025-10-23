@@ -1,330 +1,212 @@
-# Guide de Déploiement Laravel avec Swagger sur Render
+# Guide de Déploiement Laravel + Swagger sur Render avec Docker
 
-## Introduction
-Ce guide explique étape par étape comment déployer votre projet Laravel avec la documentation Swagger sur Render. Nous utiliserons PostgreSQL comme base de données.
+## Vue d'ensemble
+Ce guide explique comment déployer votre application Laravel avec documentation Swagger sur Render en utilisant Docker. Votre projet utilise PostgreSQL en local et sera déployé avec une base de données PostgreSQL managée sur Render.
 
 ## Prérequis
-- Un compte Render (gratuit disponible)
-- Votre projet Laravel avec Swagger configuré
-- Git pour versionner votre code
+- Compte Render (https://render.com)
+- Projet GitHub avec votre code
+- Docker installé localement (pour les tests)
 
-## Étape 1 : Préparation du projet pour le déploiement
+## Fichiers de configuration créés
 
-### 1.1 Configuration de la base de données
-Modifiez votre fichier `.env.example` pour utiliser PostgreSQL :
+### 1. Dockerfile
+Le Dockerfile configure une image PHP 8.1 avec Apache, installe les dépendances et configure Laravel pour la production.
+
+### 2. docker-compose.yml
+Fichier pour les tests locaux avec PostgreSQL.
+
+### 3. render.yaml
+Configuration Render pour le déploiement automatisé.
+
+### 4. .env.production
+Variables d'environnement pour la production.
+
+## Étape 1 : Préparation du projet
+
+### 1.1 Générer la documentation Swagger
+Avant de déployer, assurez-vous que la documentation est générée :
+
+```bash
+php artisan l5-swagger:generate
+```
+
+### 1.2 Créer la clé d'application
+Générez une clé pour la production :
+
+```bash
+php artisan key:generate --show
+```
+
+Copiez cette clé pour l'utiliser plus tard.
+
+### 1.3 Configurer les variables d'environnement
+Modifiez le fichier `.env.production` avec vos vraies valeurs :
 
 ```env
-DB_CONNECTION=pgsql
-DB_HOST=${DB_HOST}
-DB_PORT=5432
-DB_DATABASE=${DB_DATABASE}
-DB_USERNAME=${DB_USERNAME}
-DB_PASSWORD=${DB_PASSWORD}
+APP_KEY=votre_clé_générée
+APP_URL=https://votre-app.render.com
 ```
 
-### 1.2 Créer un fichier build.sh
-Créez un fichier `build.sh` à la racine de votre projet :
+## Étape 2 : Configuration Render
 
-```bash
-#!/usr/bin/env bash
-# Exit on error
-set -o errexit
+### 2.1 Méthode recommandée : Utiliser render.yaml (Automatique)
+1. Commitez et pushez tous les fichiers créés (Dockerfile, render.yaml, build.sh, etc.)
+2. Allez sur https://dashboard.render.com
+3. Cliquez sur "New" → "Blueprint"
+4. Connectez votre repository GitHub
+5. Render détectera automatiquement le fichier `render.yaml` et créera les services
 
-# Install dependencies
-composer install --no-interaction --prefer-dist --optimize-autoloader
-
-# Copy environment file
-cp .env.example .env
-
-# Generate application key
-php artisan key:generate
-
-# Run database migrations (optionnel, selon votre stratégie)
-# php artisan migrate --force
-
-# Generate Swagger documentation
-php artisan l5-swagger:generate
-
-# Clear and cache config
-php artisan config:cache
-php artisan route:cache
-php artisan view:cache
-```
-
-Rendez le fichier exécutable :
-```bash
-chmod +x build.sh
-```
-
-### 1.3 Créer un fichier start.sh
-Créez un fichier `start.sh` à la racine de votre projet :
-
-```bash
-#!/usr/bin/env bash
-# Exit on error
-set -o errexit
-
-# Run database migrations
-php artisan migrate --force
-
-# Start the application
-php artisan serve --host=0.0.0.0 --port=$PORT
-```
-
-Rendez le fichier exécutable :
-```bash
-chmod +x start.sh
-```
-
-### 1.4 Modifier composer.json
-Assurez-vous que votre `composer.json` a les bonnes configurations pour Render :
-
-```json
-{
-    "scripts": {
-        "post-install-cmd": [
-            "@php artisan l5-swagger:generate"
-        ]
-    }
-}
-```
-
-## Étape 2 : Configuration de Render
-
-### 2.1 Créer un nouveau service Web
-1. Allez sur [Render.com](https://render.com)
-2. Cliquez sur "New" → "Web Service"
-3. Connectez votre repository Git (GitHub, GitLab, ou Bitbucket)
-
-### 2.2 Configuration du service
-Remplissez les informations suivantes :
-
-- **Name** : ges-bank-api (ou le nom que vous voulez)
-- **Environment** : Docker (nous allons créer un Dockerfile)
-- **Region** : Choisissez la région la plus proche (par exemple, Frankfurt pour l'Europe)
-- **Branch** : main (ou votre branche principale)
-- **Build Command** : `./build.sh`
-- **Start Command** : `./start.sh`
+### 2.2 Méthode alternative : Configuration manuelle
+Si vous préférez configurer manuellement :
+1. Cliquez sur "New" → "Web Service"
+2. Connectez votre repository GitHub
+3. **Name**: ges-bank-api
+4. **Runtime**: Docker
+5. **Build Command**: `./build.sh`
+6. **Start Command**: `docker run -p $PORT:80 ges-bank`
 
 ### 2.3 Variables d'environnement
-Ajoutez les variables suivantes dans "Environment" :
+Ajoutez ces variables dans l'onglet "Environment" :
 
 ```
-DB_CONNECTION=pgsql
-DB_HOST=${DB_HOST}
-DB_PORT=5432
-DB_DATABASE=${DB_DATABASE}
-DB_USERNAME=${DB_USERNAME}
-DB_PASSWORD=${DB_PASSWORD}
-APP_KEY=${APP_KEY}
 APP_ENV=production
-APP_DEBUG=false
+APP_KEY=votre_clé_générée
+DB_CONNECTION=pgsql
 L5_SWAGGER_GENERATE_ALWAYS=false
 ```
 
-## Étape 3 : Créer le Dockerfile
+Les variables de base de données seront automatiquement configurées par Render.
 
-Créez un fichier `Dockerfile` à la racine de votre projet :
+### 2.4 Créer la base de données
+1. Dans Render, cliquez sur "New" → "PostgreSQL"
+2. **Name**: ges-bank-db
+3. **Database**: ges_bank_prod
+4. **User**: ges_bank_user
+5. Choisissez le plan (Starter est gratuit)
 
-```dockerfile
-# Use the official PHP image with Apache
-FROM php:8.1-apache
+## Étape 3 : Déploiement
 
-# Set working directory
-WORKDIR /var/www/html
+### 3.1 Vous pouvez déployer directement !
+Tous les fichiers nécessaires sont créés. Voici ce que vous devez faire :
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    git \
-    curl \
-    libpng-dev \
-    libonig-dev \
-    libxml2-dev \
-    libpq-dev \
-    zip \
-    unzip \
-    nodejs \
-    npm
+1. **Commitez et pushez vos fichiers** sur GitHub :
+   ```bash
+   git add .
+   git commit -m "Add deployment configuration for Render"
+   git push origin main
+   ```
 
-# Clear cache
-RUN apt-get clean && rm -rf /var/lib/apt/lists/*
+2. **Créez un Blueprint sur Render** :
+   - Allez sur https://dashboard.render.com
+   - "New" → "Blueprint"
+   - Connectez votre repo GitHub
+   - Render détectera `render.yaml` et créera automatiquement :
+     - Le service web avec Docker
+     - La base de données PostgreSQL
+     - Toutes les connexions nécessaires
 
-# Install PHP extensions
-RUN docker-php-ext-install pdo_pgsql mbstring exif pcntl bcmath gd
+### 3.2 Avantages de cette configuration :
+- ✅ **Automatique** : Render gère tout via `render.yaml`
+- ✅ **Sécurisé** : Base de données isolée
+- ✅ **Migrations** : Exécutées automatiquement lors du build
+- ✅ **Swagger** : Documentation générée automatiquement
+- ✅ **Production-ready** : Optimisé pour la production
 
-# Get latest Composer
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+## Étape 4 : Migration de la base de données
 
-# Copy existing application directory contents
-COPY . /var/www/html
-
-# Copy existing application directory permissions
-COPY --chown=www-data:www-data . /var/www/html
-
-# Install PHP dependencies
-RUN composer install --no-dev --optimize-autoloader
-
-# Generate application key
-RUN php artisan key:generate
-
-# Set permissions
-RUN chown -R www-data:www-data /var/www/html \
-    && chmod -R 755 /var/www/html \
-    && chmod -R 775 /var/www/html/storage \
-    && chmod -R 775 /var/www/html/bootstrap/cache
-
-# Configure Apache
-RUN a2enmod rewrite
-RUN echo "ServerName localhost" >> /etc/apache2/apache2.conf
-
-# Copy Apache configuration
-COPY <<EOF /etc/apache2/sites-available/000-default.conf
-<VirtualHost *:80>
-    ServerAdmin webmaster@localhost
-    DocumentRoot /var/www/html/public
-
-    <Directory /var/www/html/public>
-        AllowOverride All
-        Require all granted
-    </Directory>
-
-    ErrorLog \${APACHE_LOG_DIR}/error.log
-    CustomLog \${APACHE_LOG_DIR}/access.log combined
-</VirtualHost>
-EOF
-
-# Expose port 80
-EXPOSE 80
-
-# Create startup script
-RUN echo '#!/bin/bash\n\
-php artisan migrate --force\n\
-php artisan l5-swagger:generate\n\
-apache2-foreground' > /usr/local/bin/start.sh
-
-RUN chmod +x /usr/local/bin/start.sh
-
-# Start Apache
-CMD ["/usr/local/bin/start.sh"]
-```
-
-## Étape 4 : Configuration de la base de données PostgreSQL
-
-### 4.1 Créer une base de données sur Render
-1. Dans votre dashboard Render, cliquez sur "New" → "PostgreSQL"
-2. Donnez un nom à votre base de données (ex: ges-bank-db)
-3. Choisissez le plan gratuit
-4. Notez les informations de connexion (elles seront utilisées automatiquement par Render)
-
-### 4.2 Variables d'environnement pour la DB
-Render va automatiquement créer les variables d'environnement suivantes :
-- `DATABASE_URL` (contient toutes les infos de connexion)
-- Ou séparément : `DB_HOST`, `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD`
-
-## Étape 5 : Configuration des fichiers statiques pour Swagger
-
-### 5.1 Modifier le fichier .gitignore
-Assurez-vous que ces fichiers ne sont pas ignorés :
-
-```
-# Swagger documentation
-storage/api-docs/
-!storage/api-docs/.gitkeep
-```
-
-### 5.2 Générer la documentation avant le déploiement
-Avant de pousser votre code, générez la documentation :
+### 4.1 Commandes de build personnalisées
+Dans Render, ajoutez ces commandes dans "Build Command" :
 
 ```bash
-php artisan l5-swagger:generate
+docker build -t ges-bank . && docker run --rm ges-bank php artisan migrate --force
 ```
 
-Puis commitez les fichiers générés :
+Ou créez un script `build.sh` :
+
 ```bash
-git add storage/api-docs/
-git commit -m "Add generated Swagger documentation"
+#!/bin/bash
+docker build -t ges-bank .
+docker run --rm --env-file .env.production ges-bank php artisan migrate --force
+docker run --rm --env-file .env.production ges-bank php artisan db:seed --force
 ```
 
-## Étape 6 : Déploiement
+## Étape 5 : Test du déploiement
 
-### 6.1 Pousser votre code
+### 5.1 Vérifier que l'application fonctionne
+Une fois déployée, testez :
+- L'URL principale : `https://votre-app.render.com`
+- L'API : `https://votre-app.render.com/api/v1/comptes`
+- La documentation Swagger : `https://votre-app.render.com/api/documentation`
+
+### 5.2 Logs et débogage
+- Vérifiez les logs dans Render Dashboard
+- Utilisez `php artisan tinker` via SSH si nécessaire
+
+## Configuration Docker locale (pour les tests)
+
+### Test en local avec Docker
 ```bash
-git add .
-git commit -m "Prepare for deployment on Render"
-git push origin main
+# Construire l'image
+docker build -t ges-bank .
+
+# Lancer avec docker-compose (pour les tests locaux)
+docker-compose up -d
+
+# Ou lancer manuellement
+docker run -p 8080:80 --env-file .env.production ges-bank
 ```
 
-### 6.2 Déployer sur Render
-1. Allez dans votre service Web sur Render
-2. Cliquez sur "Manual Deploy" → "Deploy latest commit"
-3. Attendez que le déploiement se termine (ça peut prendre 5-10 minutes)
+## Variables d'environnement importantes
 
-### 6.3 Vérifier le déploiement
-Une fois déployé, vous devriez avoir :
-- Votre API accessible à l'URL fournie par Render
-- La documentation Swagger à : `https://votre-app.render.com/api/documentation`
-
-## Étape 7 : Migration de la base de données
-
-### 7.1 Stratégie 1 : Migration automatique (recommandée)
-Dans votre `start.sh`, ajoutez :
-```bash
-php artisan migrate --force
+### Production
+```
+APP_ENV=production
+APP_DEBUG=false
+APP_KEY=votre_clé_unique
+DB_CONNECTION=pgsql
+LOG_LEVEL=error
+CACHE_DRIVER=file
+SESSION_DRIVER=file
 ```
 
-### 7.2 Stratégie 2 : Migration manuelle
-Après le déploiement, connectez-vous à votre instance via SSH (si disponible) ou utilisez les logs pour exécuter :
-```bash
-php artisan migrate
+### Développement local
 ```
-
-## Étape 8 : Configuration finale
-
-### 8.1 Variables d'environnement supplémentaires
-Ajoutez si nécessaire :
+APP_ENV=local
+APP_DEBUG=true
+DB_CONNECTION=pgsql
+DB_HOST=localhost
+DB_PORT=5432
+DB_DATABASE=ges_bank_dev
+DB_USERNAME=postgres
+DB_PASSWORD=password
 ```
-APP_URL=https://votre-app.render.com
-L5_SWAGGER_BASE_PATH=https://votre-app.render.com
-```
-
-### 8.2 Configuration CORS
-Si vous avez des problèmes CORS, modifiez `config/cors.php` :
-
-```php
-'allowed_origins' => ['*'], // Pour développement, ou spécifiez votre domaine
-```
-
-### 8.3 Logs et débogage
-Pour voir les logs :
-1. Allez dans votre service sur Render
-2. Cliquez sur "Logs"
-3. Vérifiez les erreurs éventuelles
 
 ## Dépannage courant
 
 ### Erreur de connexion à la base de données
-- Vérifiez que les variables d'environnement sont correctement définies
-- Assurez-vous que la base de données PostgreSQL est créée et liée
-
-### Documentation Swagger ne se charge pas
-- Vérifiez que `php artisan l5-swagger:generate` est exécuté pendant le build
-- Assurez-vous que les fichiers sont dans `storage/api-docs/`
+- Vérifiez les variables d'environnement
+- Assurez-vous que la base Render est accessible
+- Vérifiez les credentials dans Render Dashboard
 
 ### Erreur 500
-- Vérifiez les logs pour les détails
-- Assurez-vous que `APP_KEY` est défini
-- Vérifiez les permissions des dossiers `storage` et `bootstrap/cache`
+- Vérifiez les logs : `docker logs <container_id>`
+- Vérifiez les permissions des dossiers storage et bootstrap/cache
+- Assurez-vous que APP_KEY est défini
 
-### Mémoire insuffisante
-Si vous avez une erreur de mémoire, ajoutez dans votre `build.sh` :
-```bash
-php -d memory_limit=512M /usr/bin/composer install --no-interaction --prefer-dist --optimize-autoloader
-```
+### Documentation Swagger ne s'affiche pas
+- Vérifiez que `php artisan l5-swagger:generate` a été exécuté
+- Vérifiez les permissions sur `storage/api-docs/`
+- URL : `https://votre-app.render.com/api/documentation`
+
+### Migrations ne s'exécutent pas
+- Ajoutez `--force` aux commandes artisan en production
+- Vérifiez que la base de données est accessible
 
 ## Optimisations pour la production
 
 ### Cache
-Assurez-vous que ces commandes sont dans votre `build.sh` :
+Activez le cache pour améliorer les performances :
 ```bash
 php artisan config:cache
 php artisan route:cache
@@ -333,17 +215,20 @@ php artisan view:cache
 
 ### Sécurité
 - Changez `APP_DEBUG=false`
-- Configurez correctement CORS
 - Utilisez HTTPS (activé par défaut sur Render)
+- Configurez CORS si nécessaire
+- Utilisez des variables d'environnement pour les secrets
 
 ## URLs importantes après déploiement
 
-- **API** : `https://votre-app.render.com/api/v1/comptes`
-- **Documentation Swagger** : `https://votre-app.render.com/api/documentation`
-- **Base de données** : Accessible via les variables d'environnement
+- **Application**: `https://votre-app.render.com`
+- **API Comptes**: `https://votre-app.render.com/api/v1/comptes`
+- **Documentation Swagger**: `https://votre-app.render.com/api/documentation`
+- **Base de données**: Accessible via les credentials Render
 
-## Conclusion
-
-Suivez ces étapes dans l'ordre et votre application Laravel avec Swagger sera déployée sur Render. Le service gratuit de Render offre 750 heures par mois, ce qui est suffisant pour un projet de développement ou une petite application en production.
-
-N'oubliez pas de surveiller les logs et les performances après le déploiement !
+## Support
+Si vous rencontrez des problèmes :
+1. Vérifiez les logs Render
+2. Testez localement avec Docker
+3. Vérifiez la configuration des variables d'environnement
+4. Consultez la documentation Render : https://docs.render.com/

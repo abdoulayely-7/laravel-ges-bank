@@ -139,7 +139,7 @@ Cette commande va :
 ## Étape 6 : Accéder à la documentation
 Ouvrez votre navigateur et allez à l'URL configurée (généralement) :
 ```
-cl
+http://localhost:8000/api/documentation
 ```
 
 Vous devriez voir l'interface Swagger avec :

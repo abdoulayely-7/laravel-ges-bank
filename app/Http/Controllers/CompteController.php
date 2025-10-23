@@ -137,7 +137,6 @@ class CompteController extends Controller
     {
         try {
             $data = $this->compteService->rechercherEtPaginer($request->validated());
-
             return $this->success(
                 $data,
                 'Liste des comptes récupérée avec succès'
