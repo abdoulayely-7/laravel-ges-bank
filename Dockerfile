@@ -22,6 +22,9 @@ COPY . /var/www/html
 # Installer les dépendances PHP
 RUN composer install --optimize-autoloader --no-dev
 
+# Copier le fichier .env.example vers .env
+RUN cp .env.example .env
+
 # Générer la clé d'application Laravel
 RUN php artisan key:generate
 
