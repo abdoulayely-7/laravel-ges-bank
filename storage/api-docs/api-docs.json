@@ -266,11 +266,6 @@
                             "cheque"
                         ]
                     },
-                    "solde": {
-                        "description": "Solde du compte",
-                        "type": "number",
-                        "format": "float"
-                    },
                     "devise": {
                         "description": "Devise du compte",
                         "type": "string"
