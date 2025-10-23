@@ -10,11 +10,31 @@ services:
         generateValue: true
       - key: DB_CONNECTION
         value: pgsql
-      - key: DATABASE_URL
+      - key: DB_HOST
         fromService:
           type: pserv
           name: ges-bank-db
-          property: connectionString
+          property: host
+      - key: DB_PORT
+        fromService:
+          type: pserv
+          name: ges-bank-db
+          property: port
+      - key: DB_DATABASE
+        fromService:
+          type: pserv
+          name: ges-bank-db
+          property: database
+      - key: DB_USERNAME
+        fromService:
+          type: pserv
+          name: ges-bank-db
+          property: user
+      - key: DB_PASSWORD
+        fromService:
+          type: pserv
+          name: ges-bank-db
+          property: password
       - key: L5_SWAGGER_GENERATE_ALWAYS
         value: false
 
