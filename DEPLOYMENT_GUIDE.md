@@ -11,7 +11,7 @@ Ce guide explique comment déployer votre application Laravel avec documentation
 ## Fichiers de configuration créés
 
 ### 1. Dockerfile
-Le Dockerfile configure une image PHP 8.1 avec Apache, installe les dépendances et configure Laravel pour la production.
+Le Dockerfile configure une image PHP 8.2 avec Apache, installe les dépendances et configure Laravel pour la production.
 
 ### 2. docker-compose.yml
 Fichier pour les tests locaux avec PostgreSQL.
@@ -85,39 +85,83 @@ Les variables de base de données seront automatiquement configurées par Render
 4. **User**: ges_bank_user
 5. Choisissez le plan (Starter est gratuit)
 
-## Étape 3 : Déploiement
+## Étape 3 : Déploiement GRATUIT sur Render
 
-### 3.1 Vous pouvez déployer directement !
-Tous les fichiers nécessaires sont créés. Voici ce que vous devez faire :
+### 3.1 🚀 Render Web Service Gratuit + Supabase PostgreSQL
 
-1. **Commitez et pushez vos fichiers** sur GitHub :
-   ```bash
-   git add .
-   git commit -m "Add deployment configuration for Render"
-   git push origin main
+Render offre un **Web Service gratuit** (750 heures/mois) et nous utiliserons Supabase pour la base PostgreSQL gratuite.
+
+#### Étape 1 : Créer la base de données Supabase (gratuite)
+1. **Allez sur https://supabase.com**
+2. **Créez un compte gratuit** (pas de carte bancaire)
+3. **Cliquez "New project"**
+4. **Remplissez** :
+   - Name: `ges-bank-db`
+   - Database Password: Choisissez un mot de passe fort
+   - Region: Choisissez la plus proche (Europe West)
+5. **Attendez** que le projet se crée (2-3 minutes)
+
+#### Étape 2 : Récupérer les informations de connexion
+1. Dans Supabase, allez dans **Settings** → **Database**
+2. **Copiez la connection string** qui ressemble à :
+   ```
+   postgresql://postgres:[YOUR-PASSWORD]@db.xxxx.supabase.co:5432/postgres
    ```
 
-2. **Créez un Blueprint sur Render** :
-   - Allez sur https://dashboard.render.com
-   - "New" → "Blueprint"
-   - Connectez votre repo GitHub
-   - Render détectera `render.yaml` et créera automatiquement :
-     - Le service web avec Docker
-     - La base de données PostgreSQL (avec nom et utilisateur générés automatiquement)
-     - Toutes les connexions nécessaires
+#### Étape 3 : Déployer sur Render (Web Service gratuit)
+1. **Allez sur https://dashboard.render.com**
+2. **Cliquez "New" → "Web Service"**
+3. **Connectez votre repository GitHub**
+4. **Configurez le service** :
+   - **Name**: `ges-bank-api`
+   - **Runtime**: `Docker`
+   - **Build Command**: `./build.sh`
+   - **Start Command**: Laissez vide (utilise le Dockerfile)
 
-### 3.2 Avantages de cette configuration :
-- ✅ **Automatique** : Render gère tout via `render.yaml`
-- ✅ **Sécurisé** : Base de données isolée
-- ✅ **Migrations** : Exécutées automatiquement lors du build
-- ✅ **Swagger** : Documentation générée automatiquement
-- ✅ **Production-ready** : Optimisé pour la production
+#### Étape 4 : Variables d'environnement
+Dans l'onglet **Environment**, ajoutez :
 
-### 3.3 Note importante :
-- Utilisation de `databases` au lieu de `services` pour PostgreSQL
-- `DATABASE_URL` contient automatiquement toutes les informations de connexion
-- Render gère automatiquement la génération des credentials de base de données
-- Le script `build.sh` utilise `DATABASE_URL` pour les migrations
+```
+APP_ENV=production
+APP_KEY=base64:7L2SMsmG+L8t870jAEAIvSximHu3xANP9EOfSbYqKg8=
+DATABASE_URL=postgresql://postgres:votre_vrai_mot_de_passe_supabase@db.uuwsgqfteliiqkjbkwrl.supabase.co:5432/postgres
+L5_SWAGGER_GENERATE_ALWAYS=false
+```
+
+**⚠️ IMPORTANT** : Remplacez `votre_vrai_mot_de_passe_supabase` par le **vrai mot de passe** que vous avez défini lors de la création du projet Supabase.
+
+**Pour trouver votre mot de passe Supabase** :
+1. Allez dans votre projet Supabase
+2. Settings → Database
+3. Le mot de passe est celui que vous avez choisi lors de la création
+
+#### Étape 5 : Déploiement
+1. **Cliquez "Create Web Service"**
+2. **Render va builder et déployer automatiquement**
+3. **Votre app sera accessible** sur une URL comme : `https://ges-bank-api.onrender.com`
+
+### 3.2 URLs après déploiement
+- **Application**: `https://ges-bank-api.onrender.com`
+- **API Comptes**: `https://ges-bank-api.onrender.com/api/v1/comptes`
+- **Documentation Swagger**: `https://ges-bank-api.onrender.com/api/documentation`
+
+### 3.3 Avantages de cette solution :
+- ✅ **100% gratuit** : Web Service Render (750h/mois) + Supabase PostgreSQL gratuit
+- ✅ **Pas de carte bancaire** requise
+- ✅ **Swagger intégré** : Documentation automatique
+- ✅ **Production-ready** : HTTPS, scaling automatique
+- ✅ **Base de données fiable** : Supabase gère tout
+
+### 3.4 Dépannage
+Si les migrations ne s'exécutent pas :
+1. Vérifiez les logs Render
+2. Assurez-vous que `DATABASE_URL` est correcte
+3. Testez la connexion : `php artisan migrate:status`
+
+### 3.5 Limites gratuites
+- **Render Web Service** : 750 heures/mois (environ 31 jours)
+- **Supabase** : 500MB database, 50MB file storage
+- **Bande passante** : Suffisant pour un projet personnel
 
 ## Étape 4 : Migration de la base de données
 
