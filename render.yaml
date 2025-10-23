@@ -3,7 +3,6 @@ services:
     name: ges-bank-api
     runtime: docker
     buildCommand: "./build.sh"
-    startCommand: "docker run -p $PORT:80 ges-bank"
     envVars:
       - key: APP_ENV
         value: production
@@ -11,41 +10,15 @@ services:
         generateValue: true
       - key: DB_CONNECTION
         value: pgsql
-      - key: DB_HOST
+      - key: DATABASE_URL
         fromService:
           type: pserv
           name: ges-bank-db
-          property: host
-      - key: DB_PORT
-        fromService:
-          type: pserv
-          name: ges-bank-db
-          property: port
-      - key: DB_DATABASE
-        fromService:
-          type: pserv
-          name: ges-bank-db
-          property: database
-      - key: DB_USERNAME
-        fromService:
-          type: pserv
-          name: ges-bank-db
-          property: user
-      - key: DB_PASSWORD
-        fromService:
-          type: pserv
-          name: ges-bank-db
-          property: password
+          property: connectionString
       - key: L5_SWAGGER_GENERATE_ALWAYS
         value: false
-      - key: APP_URL
-        fromService:
-          type: web
-          name: ges-bank-api
-          property: host
 
   - type: pserv
     name: ges-bank-db
     runtime: postgres
     plan: starter
-    ipAllowList: []  # Permettre l'accès depuis Render uniquement

@@ -114,7 +114,9 @@ Tous les fichiers nécessaires sont créés. Voici ce que vous devez faire :
 - ✅ **Production-ready** : Optimisé pour la production
 
 ### 3.3 Note importante :
-Les champs `databaseName` et `user` ne sont plus nécessaires dans `render.yaml`. Render les génère automatiquement pour plus de sécurité.
+- Les variables de base de données utilisent maintenant `DATABASE_URL` (connection string complète)
+- Render gère automatiquement la génération des credentials de base de données
+- Le script `build.sh` utilise les variables d'environnement Render
 
 ## Étape 4 : Migration de la base de données
 
