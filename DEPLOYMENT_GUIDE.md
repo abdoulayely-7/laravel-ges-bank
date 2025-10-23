@@ -103,7 +103,7 @@ Tous les fichiers nécessaires sont créés. Voici ce que vous devez faire :
    - Connectez votre repo GitHub
    - Render détectera `render.yaml` et créera automatiquement :
      - Le service web avec Docker
-     - La base de données PostgreSQL
+     - La base de données PostgreSQL (avec nom et utilisateur générés automatiquement)
      - Toutes les connexions nécessaires
 
 ### 3.2 Avantages de cette configuration :
@@ -112,6 +112,9 @@ Tous les fichiers nécessaires sont créés. Voici ce que vous devez faire :
 - ✅ **Migrations** : Exécutées automatiquement lors du build
 - ✅ **Swagger** : Documentation générée automatiquement
 - ✅ **Production-ready** : Optimisé pour la production
+
+### 3.3 Note importante :
+Les champs `databaseName` et `user` ne sont plus nécessaires dans `render.yaml`. Render les génère automatiquement pour plus de sécurité.
 
 ## Étape 4 : Migration de la base de données
 

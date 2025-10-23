@@ -47,7 +47,5 @@ services:
   - type: pserv
     name: ges-bank-db
     runtime: postgres
-    databaseName: ges_bank_prod
-    user: ges_bank_user
     plan: starter
     ipAllowList: []  # Permettre l'accès depuis Render uniquement
