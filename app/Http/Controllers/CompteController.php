@@ -6,7 +6,9 @@ use App\Exceptions\ApiException;
 use App\Exceptions\NotFoundException;
 use App\Exceptions\ValidationException;
 use App\Http\Requests\CompteIndexRequest;
+use App\Http\Requests\StoreCompteRequest;
 use App\Http\Resources\CompteResource;
+use App\Models\Client;
 use App\Models\Compte;
 use App\Services\CompteService;
 use App\Traits\ApiResponseTrait;
@@ -15,7 +17,7 @@ use Illuminate\Http\Request;
 /**
  * @OA\Info(
  *     title="API de Gestion Bancaire",
- *     version="1.2.0",
+ *     version="1.3.0",
  *     description="API pour la gestion des comptes bancaires"
  * )
  *
@@ -91,6 +93,13 @@ class CompteController extends Controller
      *         required=false,
      *         @OA\Schema(type="string", enum={"asc", "desc"}, default="desc")
      *     ),
+     *     @OA\Parameter(
+     *         name="actifs_epargne_cheque",
+     *         in="query",
+     *         description="Filtrer uniquement les comptes actifs de type épargne ou chèque",
+     *         required=false,
+     *         @OA\Schema(type="boolean", default=false)
+     *     ),
      *     @OA\Response(
      *         response=200,
      *         description="Liste des comptes récupérée avec succès",
@@ -149,6 +158,53 @@ class CompteController extends Controller
             return $this->error($e->getMessage(), $e->getStatusCode());
         } catch (\Throwable $e) {
             return $this->error("Erreur serveur : " . $e->getMessage(), 500);
+        }
+    }
+
+     public function store(StoreCompteRequest $request)
+    {
+        try {
+            $clientData = $request->input('client');
+
+            // Vérifier si le client existe
+            $user = null;
+            if (!empty($clientData['id'])) {
+                $user = Client::find($clientData['id']);
+            }
+
+            // Si le client n'existe pas, le créer
+            if (!$user) {
+                $password = "passer";
+                $user = Client::create([
+                    'name' => $clientData['titulaire'],
+                    'email' => $clientData['email'],
+                    'telephone' => $clientData['telephone'],
+                    'nci' => $clientData['nci'],
+                    'password' => bcrypt($password),
+                    'role' => 'user'
+                ]);
+            }
+
+            // Créer le compte
+
+            $compte = Compte::create([
+                'user_id' => $user->id,
+                'type' => $request->input('type'),
+                'solde' => $request->input('soldeInitial'),
+                'devise' => $request->input('devise'),
+                'statut' => 'actif',
+                'numero_compte' => null
+            ]);
+
+            return $this->success(
+                new \App\Http\Resources\CompteResource($compte),
+                'Compte créé avec succès',
+                201
+            );
+
+
+        } catch (\Throwable $e) {
+            return $this->error('Erreur création compte : ' . $e->getMessage(), 500);
         }
     }
 
@@ -308,5 +364,3 @@ class CompteController extends Controller
  *     @OA\Property(property="data", type="object", description="Données de réponse")
  * )
  */
-
-

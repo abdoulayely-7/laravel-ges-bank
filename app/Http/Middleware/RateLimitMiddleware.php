@@ -18,7 +18,7 @@ class RateLimitMiddleware
     /**
      * Durée de blocage en minutes
      */
-    private const BLOCK_DURATION_MINUTES = 2;
+    private const BLOCK_DURATION_MINUTES = 15;
 
     /**
      * Handle an incoming request.

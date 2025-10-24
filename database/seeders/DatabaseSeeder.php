@@ -24,6 +24,7 @@ class DatabaseSeeder extends Seeder
         AdminSeeder::class,
         ClientSeeder::class,
         CompteSeeder::class,
+        TransactionSeeder::class,
     ]);
     }
 }

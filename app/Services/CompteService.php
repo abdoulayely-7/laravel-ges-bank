@@ -12,13 +12,19 @@ class CompteService
     {
         $query = Compte::with('client.user');
 
-        // 🔍 Filtres
+        // 🔍 Filtres - Le scope global nonSupprimes est automatiquement appliqué
         if (!empty($params['type'])) {
             $query->where('type', $params['type']);
         }
 
         if (!empty($params['statut'])) {
             $query->where('statut', $params['statut']);
+        }
+
+        // 🎯 Filtre spécial : comptes de type "cheque" OU "epargne" ET statut "actif"
+        if (!empty($params['actifs_epargne_cheque'])) {
+            $query->whereIn('type', ['cheque', 'epargne'])
+                  ->where('statut', 'actif');
         }
 
         // 🔍 Recherche par nom ou numéro de compte
