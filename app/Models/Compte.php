@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -23,6 +24,16 @@ class Compte extends Model
         'motif_blocage',
         'date_creation',
     ];
+
+    /**
+     * Scope global pour récupérer uniquement les comptes non supprimés
+     */
+    protected static function booted(): void
+    {
+        static::addGlobalScope('nonSupprimes', function (Builder $builder) {
+            $builder->whereNull('deleted_at');
+        });
+    }
 
     public function client()
     {

@@ -42,6 +42,7 @@ class CompteResource extends JsonResource
             'devise' => $this->devise,
             'dateCreation' => $this->created_at?->toIso8601String(),
             'statut' => $this->statut,
+            'motifBlocage' => $this->motif_blocage,
             'metadata' => [
                 'derniereModification' => $this->updated_at?->toIso8601String(),
                 'version' => 1,

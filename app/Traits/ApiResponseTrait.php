@@ -7,6 +7,18 @@ trait ApiResponseTrait
 
     protected function success($data = null, string $message = 'Opération réussie', int $code = 200)
     {
+        // Si les données contiennent 'items', 'pagination' et 'links', c'est une réponse paginée
+        if (is_array($data) && isset($data['items'], $data['pagination'], $data['links'])) {
+            return response()->json([
+                'success' => true,
+                'message' => $message,
+                'data' => $data['items'],
+                'pagination' => $data['pagination'],
+                'links' => $data['links'],
+            ], $code);
+        }
+
+        // Réponse normale
         return response()->json([
             'success' => true,
             'message' => $message,
@@ -15,16 +27,7 @@ trait ApiResponseTrait
     }
 
 
-//    public function success($data = null, $meta = [], $code = 200)
-//    {
-//        return response()->json([
-//            'success' => true,
-//            'data' => $data,
-//            'pagination' => $meta['pagination'] ?? null,
-//            'links' => $meta['links'] ?? null,
-//            'message' => $meta['message'] ?? null,
-//        ], $code);
-//    }
+
 
     protected function error(string $message = 'Error', int $status = 500)
     {
@@ -36,15 +39,5 @@ trait ApiResponseTrait
 
 
 
-//    protected function success($data, $pagination = null)
-//    {
-//        $response = ['success' => true, 'data' => $data];
-//
-//        if ($pagination) {
-//            $response['pagination'] = $pagination['pagination'];
-//            $response['links'] = $pagination['links'];
-//        }
-//
-//        return response()->json($response);
-//
+
 }
