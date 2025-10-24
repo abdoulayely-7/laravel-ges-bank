@@ -24,7 +24,7 @@ class CompteService
         // 🎯 Filtre spécial : comptes de type "cheque" OU "epargne" ET statut "actif"
         if (!empty($params['actifs_epargne_cheque'])) {
             $query->whereIn('type', ['cheque', 'epargne'])
-                  ->where('statut', 'actif');
+                ->where('statut', 'actif');
         }
 
         // 🔍 Recherche par nom ou numéro de compte
@@ -75,5 +75,72 @@ class CompteService
                 'last' => $paginator->url($paginator->lastPage())
             ]
         ];
+    }
+
+    /**
+     * Créer un nouveau compte bancaire
+     */
+    public function creerCompte(array $data): Compte
+    {
+        // 1. Vérifier si le client existe
+        $client = $this->trouverOuCreerClient($data['client']);
+
+        // 2. Créer le compte
+        $compte = Compte::create([
+            'numero_compte' => null, // Sera généré automatiquement par le mutateur
+            'type' => $data['type'],
+            'devise' => $data['devise'],
+            'client_id' => $client->id,
+            'statut' => 'actif',
+            'date_creation' => now(),
+        ]);
+
+        // 3. Créer la transaction initiale de dépôt
+        $compte->transactions()->create([
+            'type' => 'depot',
+            'montant' => $data['soldeInitial'],
+            'description' => 'Ouverture de compte - dépôt initial',
+            'statut' => 'complete',
+            'date' => now(),
+        ]);
+
+        return $compte->load('client.user');
+    }
+
+    /**
+     * Trouver un client existant ou en créer un nouveau
+     */
+    private function trouverOuCreerClient(array $clientData): \App\Models\Client
+    {
+        // Si un ID de client est fourni, vérifier qu'il existe
+        if (!empty($clientData['id'])) {
+            return \App\Models\Client::findOrFail($clientData['id']);
+        }
+
+        // Chercher le client par téléphone ou email
+        $client = \App\Models\Client::where('telephone', $clientData['telephone'])
+            ->orWhereHas('user', function ($query) use ($clientData) {
+                $query->where('email', $clientData['email']);
+            })
+            ->first();
+
+        if ($client) {
+            return $client;
+        }
+
+        // Créer un nouvel utilisateur
+        $user = \App\Models\User::create([
+            'name' => $clientData['titulaire'],
+            'email' => $clientData['email'],
+            'password' => bcrypt(\Illuminate\Support\Str::random(12)), // Mot de passe généré
+        ]);
+
+        // Créer le client
+        return \App\Models\Client::create([
+            'user_id' => $user->id,
+            'telephone' => $clientData['telephone'],
+            'adresse' => $clientData['adresse'],
+            'nci' => $clientData['nci'],
+        ]);
     }
 }

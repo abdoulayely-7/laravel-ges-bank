@@ -19,12 +19,12 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
 
-// 'rating.limit'
+// 'rating.limit' 'rate.limit', 'rating.limit'
 
-Route::prefix('v1')->middleware(['rate.limit', ])->group(function () {
+Route::prefix('v1')->middleware([])->group(function () {
     Route::get('comptes', [CompteController::class, 'index']);
+    Route::post('comptes', [CompteController::class, 'store']);
     Route::get('comptes/{numero}', [CompteController::class, 'show']);
     Route::get('comptes/client/{telephone}', [CompteController::class, 'getComptesByTelephone']);
-    Route::post('comptes', [CompteController::class, 'store']);
     // Route::patch('comptes/{compte}', [CompteController::class, 'update']);
 });

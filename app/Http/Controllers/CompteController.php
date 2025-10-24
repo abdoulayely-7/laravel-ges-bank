@@ -17,7 +17,7 @@ use Illuminate\Http\Request;
 /**
  * @OA\Info(
  *     title="API de Gestion Bancaire",
- *     version="1.3.0",
+ *     version="1.4.0",
  *     description="API pour la gestion des comptes bancaires"
  * )
  *
@@ -161,52 +161,6 @@ class CompteController extends Controller
         }
     }
 
-     public function store(StoreCompteRequest $request)
-    {
-        try {
-            $clientData = $request->input('client');
-
-            // Vérifier si le client existe
-            $user = null;
-            if (!empty($clientData['id'])) {
-                $user = Client::find($clientData['id']);
-            }
-
-            // Si le client n'existe pas, le créer
-            if (!$user) {
-                $password = "passer";
-                $user = Client::create([
-                    'name' => $clientData['titulaire'],
-                    'email' => $clientData['email'],
-                    'telephone' => $clientData['telephone'],
-                    'nci' => $clientData['nci'],
-                    'password' => bcrypt($password),
-                    'role' => 'user'
-                ]);
-            }
-
-            // Créer le compte
-
-            $compte = Compte::create([
-                'user_id' => $user->id,
-                'type' => $request->input('type'),
-                'solde' => $request->input('soldeInitial'),
-                'devise' => $request->input('devise'),
-                'statut' => 'actif',
-                'numero_compte' => null
-            ]);
-
-            return $this->success(
-                new \App\Http\Resources\CompteResource($compte),
-                'Compte créé avec succès',
-                201
-            );
-
-
-        } catch (\Throwable $e) {
-            return $this->error('Erreur création compte : ' . $e->getMessage(), 500);
-        }
-    }
 
     /**
      * @OA\Get(
@@ -325,6 +279,95 @@ class CompteController extends Controller
             );
         } catch (NotFoundException $e) {
             return $this->error($e->getMessage(), $e->getStatusCode());
+        } catch (\Throwable $e) {
+            return $this->error("Erreur serveur : " . $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * @OA\Post(
+     *     path="/comptes",
+     *     summary="Créer un nouveau compte bancaire",
+     *     description="Crée un nouveau compte bancaire avec un client existant ou nouveau",
+     *     operationId="createCompte",
+     *     tags={"Comptes"},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"type", "soldeInitial", "devise", "client"},
+     *             @OA\Property(property="type", type="string", enum={"epargne", "courant", "cheque"}, example="cheque"),
+     *             @OA\Property(property="soldeInitial", type="number", format="float", minimum=10000, example=500000),
+     *             @OA\Property(property="devise", type="string", enum={"FCFA", "EUR", "USD"}, example="FCFA"),
+     *             @OA\Property(property="client", type="object",
+     *                 oneOf={
+     *                     @OA\Schema(
+     *                         @OA\Property(property="id", type="string", format="uuid", description="ID du client existant"),
+     *                         @OA\Property(property="titulaire", type="string", example="Cheikh Sy"),
+     *                         @OA\Property(property="email", type="string", format="email", example="cheikh.sy@example.com"),
+     *                         @OA\Property(property="telephone", type="string", example="+221771234567"),
+     *                         @OA\Property(property="nci", type="string", example="1234567890123"),
+     *                         @OA\Property(property="adresse", type="string", example="Dakar, Sénégal")
+     *                     )
+     *                 }
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=201,
+     *         description="Compte créé avec succès",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Compte créé avec succès"),
+     *             @OA\Property(property="data", ref="#/components/schemas/CompteResource")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=400,
+     *         description="Données invalides",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Erreur de validation"),
+     *             @OA\Property(property="errors", type="object")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=422,
+     *         description="Erreur de validation",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=false),
+     *             @OA\Property(property="error", type="object",
+     *                 @OA\Property(property="code", type="string", example="VALIDATION_ERROR"),
+     *                 @OA\Property(property="message", type="string", example="Les données fournies sont invalides"),
+     *                 @OA\Property(property="details", type="object")
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=500,
+     *         description="Erreur serveur",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Erreur serveur")
+     *         )
+     *     )
+     * )
+     */
+    public function store(StoreCompteRequest $request)
+    {
+        try {
+            $compte = $this->compteService->creerCompte($request->validated());
+
+            return $this->success(
+                new CompteResource($compte),
+                'Compte créé avec succès',
+                201
+            );
+        } catch (\Illuminate\Database\QueryException $e) {
+            // Gestion des erreurs de base de données (contraintes d'unicité, etc.)
+            if ($e->getCode() == 23000) { // Integrity constraint violation
+                return $this->error('Une contrainte d\'unicité a été violée', 400);
+            }
+            return $this->error("Erreur de base de données : " . $e->getMessage(), 500);
         } catch (\Throwable $e) {
             return $this->error("Erreur serveur : " . $e->getMessage(), 500);
         }

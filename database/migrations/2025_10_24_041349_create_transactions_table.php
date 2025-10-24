@@ -20,7 +20,7 @@ return new class extends Migration
 
             $table->enum('type', ['depot', 'retrait']);
 
-            // 💵 Montant (jusqu’à 999 999 999 999.99)
+            //  Montant (jusqu’à 999 999 999 999.99)
             $table->decimal('montant', 15, 2);
 
             $table->string('description')->nullable();
