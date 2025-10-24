@@ -3,7 +3,7 @@
     "info": {
         "title": "API de Gestion Bancaire",
         "description": "API pour la gestion des comptes bancaires",
-        "version": "1.0.0"
+        "version": "1.2.0"
     },
     "servers": [
         {

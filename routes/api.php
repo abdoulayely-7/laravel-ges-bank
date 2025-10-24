@@ -19,7 +19,7 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
 
-Route::prefix('v1')->group(function () {
+Route::prefix('v1')->middleware('rate.limit')->group(function () {
     Route::get('comptes', [CompteController::class, 'index']);
     Route::get('comptes/{numero}', [CompteController::class, 'show']);
     Route::get('comptes/client/{telephone}', [CompteController::class, 'getComptesByTelephone']);

@@ -15,7 +15,7 @@ use Illuminate\Http\Request;
 /**
  * @OA\Info(
  *     title="API de Gestion Bancaire",
- *     version="1.0.0",
+ *     version="1.2.0",
  *     description="API pour la gestion des comptes bancaires"
  * )
  *
