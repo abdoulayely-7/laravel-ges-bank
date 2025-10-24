@@ -3,7 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Exceptions\ApiException;
+use App\Exceptions\NotFoundException;
+use App\Exceptions\ValidationException;
 use App\Http\Requests\CompteIndexRequest;
+use App\Http\Resources\CompteResource;
+use App\Models\Compte;
 use App\Services\CompteService;
 use App\Traits\ApiResponseTrait;
 use Illuminate\Http\Request;
@@ -147,9 +151,132 @@ class CompteController extends Controller
             return $this->error("Erreur serveur : " . $e->getMessage(), 500);
         }
     }
+
+    /**
+     * @OA\Get(
+     *     path="/comptes/{numero}",
+     *     summary="Récupérer un compte par numéro",
+     *     description="Retourne les détails d'un compte spécifique basé sur son numéro",
+     *     operationId="getCompteByNumero",
+     *     tags={"Comptes"},
+     *     @OA\Parameter(
+     *         name="numero",
+     *         in="path",
+     *         description="Numéro du compte",
+     *         required=true,
+     *         @OA\Schema(type="string")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Compte trouvé avec succès",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Compte trouvé avec succès"),
+     *             @OA\Property(property="data", ref="#/components/schemas/CompteResource")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Compte non trouvé",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Compte non trouvé")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=500,
+     *         description="Erreur serveur",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Erreur serveur")
+     *         )
+     *     )
+     * )
+     */
+    public function show(string $numero)
+    {
+        try {
+            $compte = Compte::query()->numero($numero)->with('client.user')->first();
+
+            if (!$compte) {
+                throw new NotFoundException('Compte', $numero);
+            }
+
+            return $this->success(
+                new CompteResource($compte),
+                'Compte trouvé avec succès'
+            );
+        } catch (NotFoundException $e) {
+            return $this->error($e->getMessage(), $e->getStatusCode());
+        } catch (\Throwable $e) {
+            return $this->error("Erreur serveur : " . $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * @OA\Get(
+     *     path="/comptes/client/{telephone}",
+     *     summary="Récupérer les comptes d'un client par téléphone",
+     *     description="Retourne la liste des comptes d'un client basé sur son numéro de téléphone",
+     *     operationId="getComptesByTelephone",
+     *     tags={"Comptes"},
+     *     @OA\Parameter(
+     *         name="telephone",
+     *         in="path",
+     *         description="Numéro de téléphone du client",
+     *         required=true,
+     *         @OA\Schema(type="string")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Comptes trouvés avec succès",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Comptes trouvés avec succès"),
+     *             @OA\Property(property="data", type="array", @OA\Items(ref="#/components/schemas/CompteResource"))
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Aucun compte trouvé",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Aucun compte trouvé pour ce numéro de téléphone")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=500,
+     *         description="Erreur serveur",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Erreur serveur")
+     *         )
+     *     )
+     * )
+     */
+    public function getComptesByTelephone(string $telephone)
+    {
+        try {
+            $comptes = Compte::query()->client($telephone)->with('client.user')->get();
+
+            if ($comptes->isEmpty()) {
+                throw new NotFoundException('Comptes', "téléphone {$telephone}");
+            }
+
+            return $this->success(
+                CompteResource::collection($comptes),
+                'Comptes trouvés avec succès'
+            );
+        } catch (NotFoundException $e) {
+            return $this->error($e->getMessage(), $e->getStatusCode());
+        } catch (\Throwable $e) {
+            return $this->error("Erreur serveur : " . $e->getMessage(), 500);
+        }
+    }
 }
 
 /**
+ *
  * @OA\Schema(
  *     schema="Pagination",
  *     title="Pagination",
@@ -181,3 +308,5 @@ class CompteController extends Controller
  *     @OA\Property(property="data", type="object", description="Données de réponse")
  * )
  */
+
+

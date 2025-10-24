@@ -39,4 +39,22 @@ class Compte extends Model
     {
         return $this->belongsTo(Client::class);
     }
+
+    /**
+     * Scope local pour récupérer un compte par son numéro
+     */
+    public function scopeNumero(Builder $query, string $numero): Builder
+    {
+        return $query->where('numero_compte', $numero);
+    }
+
+    /**
+     * Scope local pour récupérer les comptes d'un client basé sur son téléphone
+     */
+    public function scopeClient(Builder $query, string $telephone): Builder
+    {
+        return $query->whereHas('client', function ($q) use ($telephone) {
+            $q->where('telephone', $telephone);
+        });
+    }
 }
