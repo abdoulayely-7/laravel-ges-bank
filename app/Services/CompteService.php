@@ -2,79 +2,91 @@
 
 namespace App\Services;
 
+use App\Models\Client;
 use App\Models\Compte;
 use App\Http\Resources\CompteResource;
+use App\Models\User;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Str;
 
 class CompteService
 {
     public function rechercherEtPaginer(array $params): array
     {
-        $query = Compte::with('client.user');
+        // 🧩 Génération d'une clé de cache unique basée sur les paramètres
+        $cacheKey = 'comptes_' . md5(json_encode($params));
 
-        // 🔍 Filtres - Le scope global nonSupprimes est automatiquement appliqué
-        if (!empty($params['type'])) {
-            $query->where('type', $params['type']);
-        }
+        // 🕒 Durée du cache (en secondes)
+        $ttl = 60; // 1 minute, à ajuster selon ton besoin
 
-        if (!empty($params['statut'])) {
-            $query->where('statut', $params['statut']);
-        }
+        // 🔄 Utilisation du cache Laravel
+        return Cache::remember($cacheKey, $ttl, function () use ($params) {
+            $query = Compte::with('client.user');
 
-        // 🎯 Filtre spécial : comptes de type "cheque" OU "epargne" ET statut "actif"
-        if (!empty($params['actifs_epargne_cheque'])) {
-            $query->whereIn('type', ['cheque', 'epargne'])
-                ->where('statut', 'actif');
-        }
+            if (!empty($params['type'])) {
+                $query->where('type', $params['type']);
+            }
 
-        // 🔍 Recherche par nom ou numéro de compte
-        if (!empty($params['search'])) {
-            $s = strtolower($params['search']);
-            $query->where(function ($q) use ($s) {
-                $q->whereRaw('LOWER(numero_compte) LIKE ?', ["%{$s}%"])
-                    ->orWhereHas('client.user', function ($q2) use ($s) {
-                        $q2->whereRaw('LOWER(name) LIKE ?', ["%{$s}%"]);
-                    });
-            });
-        }
+            if (!empty($params['statut'])) {
+                $query->where('statut', $params['statut']);
+            }
 
-        // 🔽 Tri
-        switch ($params['sort']) {
-            case 'dateCreation':
-                $query->orderBy('date_creation', $params['order']);
-                break;
-            case 'solde':
-                $query->orderBy('solde', $params['order']);
-                break;
-            case 'titulaire':
-                $query->join('clients', 'comptes.client_id', '=', 'clients.id')
-                    ->join('users', 'clients.user_id', '=', 'users.id')
-                    ->orderByRaw("LOWER(users.name) {$params['order']}")
-                    ->select('comptes.*');
-                break;
-        }
+            if (!empty($params['actifs_epargne_cheque'])) {
+                $query->whereIn('type', ['cheque', 'epargne'])
+                    ->where('statut', 'actif');
+            }
 
-        // 📄 Pagination
-        /** @var LengthAwarePaginator $paginator */
-        $paginator = $query->paginate($params['limit'], ['*'], 'page', $params['page']);
+            if (!empty($params['search'])) {
+                $s = strtolower($params['search']);
+                $query->where(function ($q) use ($s) {
+                    $q->whereRaw('LOWER(numero_compte) LIKE ?', ["%{$s}%"])
+                        ->orWhereHas('client.user', function ($q2) use ($s) {
+                            $q2->whereRaw('LOWER(name) LIKE ?', ["%{$s}%"]);
+                        });
+                });
+            }
 
-        return [
-            'items' => CompteResource::collection($paginator->items()),
-            'pagination' => [
-                'currentPage' => $paginator->currentPage(),
-                'totalPages' => $paginator->lastPage(),
-                'totalItems' => $paginator->total(),
-                'itemsPerPage' => $paginator->perPage(),
-                'hasNext' => $paginator->hasMorePages(),
-                'hasPrevious' => $paginator->currentPage() > 1
-            ],
-            'links' => [
-                'self' => url()->current() . '?' . http_build_query(request()->query()),
-                'next' => $paginator->nextPageUrl(),
-                'first' => $paginator->url(1),
-                'last' => $paginator->url($paginator->lastPage())
-            ]
-        ];
+            switch ($params['sort'] ?? '') {
+                case 'dateCreation':
+                    $query->orderBy('date_creation', $params['order'] ?? 'asc');
+                    break;
+                case 'solde':
+                    $query->orderBy('solde', $params['order'] ?? 'asc');
+                    break;
+                case 'titulaire':
+                    $query->join('clients', 'comptes.client_id', '=', 'clients.id')
+                        ->join('users', 'clients.user_id', '=', 'users.id')
+                        ->orderByRaw("LOWER(users.name) " . ($params['order'] ?? 'asc'))
+                        ->select('comptes.*');
+                    break;
+            }
+
+            $paginator = $query->paginate(
+                $params['limit'] ?? 10,
+                ['*'],
+                'page',
+                $params['page'] ?? 1
+            );
+
+            return [
+                'items' => CompteResource::collection($paginator->items()),
+                'pagination' => [
+                    'currentPage' => $paginator->currentPage(),
+                    'totalPages' => $paginator->lastPage(),
+                    'totalItems' => $paginator->total(),
+                    'itemsPerPage' => $paginator->perPage(),
+                    'hasNext' => $paginator->hasMorePages(),
+                    'hasPrevious' => $paginator->currentPage() > 1
+                ],
+                'links' => [
+                    'self' => url()->current() . '?' . http_build_query(request()->query()),
+                    'next' => $paginator->nextPageUrl(),
+                    'first' => $paginator->url(1),
+                    'last' => $paginator->url($paginator->lastPage())
+                ]
+            ];
+        });
     }
 
     /**
@@ -96,7 +108,7 @@ class CompteService
         ]);
 
         // 3. Créer la transaction initiale de dépôt
-        $compte->transactions()->create([
+        $transaction = $compte->transactions()->create([
             'type' => 'depot',
             'montant' => $data['soldeInitial'],
             'description' => 'Ouverture de compte - dépôt initial',
@@ -104,21 +116,22 @@ class CompteService
             'date' => now(),
         ]);
 
-        return $compte->load('client.user');
+        // Recharger le compte avec les transactions pour recalculer le solde
+        return $compte->fresh(['client.user', 'transactions']);
     }
 
     /**
      * Trouver un client existant ou en créer un nouveau
      */
-    private function trouverOuCreerClient(array $clientData): \App\Models\Client
+    private function trouverOuCreerClient(array $clientData): Client
     {
         // Si un ID de client est fourni, vérifier qu'il existe
         if (!empty($clientData['id'])) {
-            return \App\Models\Client::findOrFail($clientData['id']);
+            return Client::findOrFail($clientData['id']);
         }
 
         // Chercher le client par téléphone ou email
-        $client = \App\Models\Client::where('telephone', $clientData['telephone'])
+        $client = Client::where('telephone', $clientData['telephone'])
             ->orWhereHas('user', function ($query) use ($clientData) {
                 $query->where('email', $clientData['email']);
             })
@@ -129,14 +142,14 @@ class CompteService
         }
 
         // Créer un nouvel utilisateur
-        $user = \App\Models\User::create([
+        $user = User::create([
             'name' => $clientData['titulaire'],
             'email' => $clientData['email'],
-            'password' => bcrypt(\Illuminate\Support\Str::random(12)), // Mot de passe généré
+            'password' => bcrypt(Str::random(12)), // Mot de passe généré
         ]);
 
         // Créer le client
-        return \App\Models\Client::create([
+        return Client::create([
             'user_id' => $user->id,
             'telephone' => $clientData['telephone'],
             'adresse' => $clientData['adresse'],

@@ -4,6 +4,7 @@ namespace App\Observers;
 
 use App\Events\CompteCreated;
 use App\Models\Compte;
+use Illuminate\Support\Facades\Cache;
 
 class CompteObserver
 {
@@ -13,6 +14,7 @@ class CompteObserver
     public function created(Compte $compte): void
     {
         event(new CompteCreated($compte));
+        Cache::flush();
     }
 
     /**
