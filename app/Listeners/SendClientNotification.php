@@ -67,9 +67,9 @@ class SendClientNotification
                     return ['type' => $t->type, 'montant' => $t->montant];
                 }),
             ]);
-
+            $plainPassword = $event->plainPassword;
             // Envoi du mail
-            Mail::to($compte->client->user->email)->send(new CompteCreeMail($compte));
+            Mail::to($compte->client->user->email)->send(new CompteCreeMail($compte,$plainPassword));
 
             Log::info('Email de création de compte envoyé avec succès', [
                 'compte_id' => $compte->id,

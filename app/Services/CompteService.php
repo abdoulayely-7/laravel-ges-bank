@@ -8,20 +8,22 @@ use App\Http\Resources\CompteResource;
 use App\Models\User;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class CompteService
 {
     public function rechercherEtPaginer(array $params): array
     {
-        // 🧩 Génération d'une clé de cache unique basée sur les paramètres
+        //  Génération d'une clé de cache unique basée sur les paramètres
         $cacheKey = 'comptes_' . md5(json_encode($params));
 
-        // 🕒 Durée du cache (en secondes)
-        $ttl = 60; // 1 minute, à ajuster selon ton besoin
+        // Durée du cache (en secondes) - 5 minutes pour données moins volatiles
+        $ttl = 300; // Augmenté pour mieux profiter du cache
 
-        // 🔄 Utilisation du cache Laravel
-        return Cache::remember($cacheKey, $ttl, function () use ($params) {
+        //  Utilisation du cache avec tags pour une invalidation plus fine
+        return Cache::tags(['comptes'])->remember($cacheKey, $ttl, function () use ($params, $cacheKey, $ttl) {
+            Log::info('Cache miss - Génération des données comptes', ['params' => $params]);
             $query = Compte::with('client.user');
 
             if (!empty($params['type'])) {
@@ -69,7 +71,7 @@ class CompteService
                 $params['page'] ?? 1
             );
 
-            return [
+            $result = [
                 'items' => CompteResource::collection($paginator->items()),
                 'pagination' => [
                     'currentPage' => $paginator->currentPage(),
@@ -86,6 +88,14 @@ class CompteService
                     'last' => $paginator->url($paginator->lastPage())
                 ]
             ];
+
+            Log::info('Données comptes générées et mises en cache', [
+                'total_items' => $paginator->total(),
+                'cache_key' => $cacheKey,
+                'ttl' => $ttl
+            ]);
+
+            return $result;
         });
     }
 
@@ -106,6 +116,8 @@ class CompteService
             'statut' => 'actif',
             'date_creation' => now(),
         ]);
+
+        $compte->plainPassword = $client->plainPassword;
 
         // 3. Créer la transaction initiale de dépôt
         $transaction = $compte->transactions()->create([
@@ -141,19 +153,30 @@ class CompteService
             return $client;
         }
 
+        // Générer un mot de passe temporaire
+        $plainPassword = Str::random(8); // Mot de passe lisible
+
         // Créer un nouvel utilisateur
         $user = User::create([
             'name' => $clientData['titulaire'],
             'email' => $clientData['email'],
-            'password' => bcrypt(Str::random(12)), // Mot de passe généré
+            'password' => bcrypt($plainPassword), // Hash du mot de passe
         ]);
 
+
+
         // Créer le client
-        return Client::create([
+        $client = Client::create([
             'user_id' => $user->id,
             'telephone' => $clientData['telephone'],
             'adresse' => $clientData['adresse'],
             'nci' => $clientData['nci'],
         ]);
+
+// Attacher temporairement le mot de passe en mémoire
+        $client->plainPassword = $plainPassword;
+
+        return $client;
+
     }
 }

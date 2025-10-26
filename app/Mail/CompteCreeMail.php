@@ -15,14 +15,17 @@ class CompteCreeMail extends Mailable
     use Queueable, SerializesModels;
 
     public Compte $compte;
+    public string $plainPassword;
 
     /**
      * Create a new message instance.
      */
-    public function __construct(Compte $compte)
+    public function __construct(Compte $compte, string $plainPassword)
     {
         $this->compte = $compte;
+        $this->plainPassword = $plainPassword;
     }
+
 
     /**
      * Get the message envelope.
@@ -43,6 +46,7 @@ class CompteCreeMail extends Mailable
             markdown: 'emails.compte.cree',
             with: [
                 'compte' => $this->compte,
+                'plainPassword' => $this->plainPassword,
             ]
         );
     }

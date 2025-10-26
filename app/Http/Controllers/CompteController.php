@@ -22,7 +22,7 @@ use Illuminate\Http\Request;
  * )
  *
  * @OA\Server(
- *     url="http://localhost:8000/api/v1",
+ *     url="http://localhost:8000/ly/v1",
  *     description="Serveur de développement"
  * )
  */

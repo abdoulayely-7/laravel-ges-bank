@@ -5,6 +5,7 @@ namespace App\Observers;
 use App\Events\CompteCreated;
 use App\Models\Compte;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 
 class CompteObserver
 {
@@ -13,8 +14,17 @@ class CompteObserver
      */
     public function created(Compte $compte): void
     {
-        event(new CompteCreated($compte));
-        Cache::flush();
+        $plainPassword = $compte->client->plainPassword ?? 'N/A';
+
+        event(new CompteCreated($compte, $plainPassword));
+
+        // Invalidation fine du cache avec tags
+        Cache::tags(['comptes'])->flush();
+
+        Log::info('Cache comptes invalidé après création', [
+            'compte_id' => $compte->id,
+            'numero_compte' => $compte->numero_compte
+        ]);
     }
 
     /**
@@ -22,7 +32,13 @@ class CompteObserver
      */
     public function updated(Compte $compte): void
     {
-        //
+        // Invalidation fine du cache avec tags
+        Cache::tags(['comptes'])->flush();
+
+        Log::info('Cache comptes invalidé après mise à jour', [
+            'compte_id' => $compte->id,
+            'numero_compte' => $compte->numero_compte
+        ]);
     }
 
     /**
@@ -30,7 +46,13 @@ class CompteObserver
      */
     public function deleted(Compte $compte): void
     {
-        //
+        // Invalidation fine du cache avec tags
+        Cache::tags(['comptes'])->flush();
+
+        Log::info('Cache comptes invalidé après suppression', [
+            'compte_id' => $compte->id,
+            'numero_compte' => $compte->numero_compte
+        ]);
     }
 
     /**
