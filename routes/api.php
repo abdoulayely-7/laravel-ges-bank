@@ -20,8 +20,8 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 });
 
 // 'rating.limit' 'rate.limit', 'rating.limit'
-
-Route::prefix('v1')->middleware([])->group(function () {
+//middleware([])->
+Route::prefix('v1')->group(function () {
     Route::get('comptes', [CompteController::class, 'index']);
     Route::post('comptes', [CompteController::class, 'store']);
     Route::get('comptes/{numero}', [CompteController::class, 'show']);

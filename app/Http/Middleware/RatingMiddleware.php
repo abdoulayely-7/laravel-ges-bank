@@ -13,7 +13,7 @@ class RatingMiddleware
     /**
      * Nombre maximum de requêtes par jour
      */
-    private const MAX_REQUESTS_PER_DAY = 5;
+    private const MAX_REQUESTS_PER_DAY = 100;
 
     /**
      * Durée de blocage en heures
