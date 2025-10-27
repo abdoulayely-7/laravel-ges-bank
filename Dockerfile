@@ -5,10 +5,11 @@ FROM php:8.3-apache
 RUN apt-get update && apt-get install -y \
     libpq-dev \
     libzip-dev \
+    libredis-dev \
     zip \
     unzip \
     git \
-    && docker-php-ext-install pdo pdo_pgsql zip
+    && docker-php-ext-install pdo pdo_pgsql zip redis
 
 # Installer Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
@@ -33,6 +34,8 @@ RUN echo "APP_NAME=\"GES Bank API\"" > .env && \
     echo "DB_DATABASE=bank_laravel_api" >> .env && \
     echo "DB_USERNAME=bank_laravel_api_user" >> .env && \
     echo "DB_PASSWORD=zNk24j1UwvkG8eM9P4EyUJ8lBj2vzczX" >> .env && \
+    echo "CACHE_DRIVER=file" >> .env && \
+    echo "SESSION_DRIVER=file" >> .env && \
     echo "L5_SWAGGER_GENERATE_ALWAYS=false" >> .env && \
     php artisan key:generate
 
