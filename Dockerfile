@@ -8,6 +8,7 @@ RUN apt-get update && apt-get install -y \
     zip \
     unzip \
     git \
+    redis-server \
     && docker-php-ext-install pdo pdo_pgsql zip
 
 # Installer Composer
@@ -33,8 +34,8 @@ RUN echo "APP_NAME=\"GES Bank API\"" > .env && \
     echo "DB_DATABASE=bank_laravel_api" >> .env && \
     echo "DB_USERNAME=bank_laravel_api_user" >> .env && \
     echo "DB_PASSWORD=zNk24j1UwvkG8eM9P4EyUJ8lBj2vzczX" >> .env && \
-    echo "CACHE_DRIVER=file" >> .env && \
-    echo "SESSION_DRIVER=file" >> .env && \
+    echo "CACHE_DRIVER=redis" >> .env && \
+    echo "SESSION_DRIVER=redis" >> .env && \
     echo "QUEUE_CONNECTION=sync" >> .env && \
     echo "REDIS_HOST=127.0.0.1" >> .env && \
     echo "REDIS_PASSWORD=null" >> .env && \
@@ -70,5 +71,5 @@ EOF
 # Exposer le port 80
 EXPOSE 80
 
-# Commande de démarrage
-CMD ["apache2-foreground"]
+# Démarrer Redis en arrière-plan et Apache au premier plan
+CMD redis-server --daemonize yes && apache2-foreground
