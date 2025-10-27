@@ -5,7 +5,7 @@ return [
     'documentations' => [
         'default' => [
             'api' => [
-                'title' => 'L5 Swagger UI',
+                'title' => 'GES Bank API Documentation',
             ],
 
             'routes' => [
@@ -14,6 +14,9 @@ return [
                  */
                 'api' => 'api/documentation',
             ],
+            'additional_config_url' => null,
+            'operations_sort' => null,
+            'validator_url' => null,
             'paths' => [
                 /*
                  * Edit to include full URL in ui for assets
