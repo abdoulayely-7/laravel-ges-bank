@@ -35,6 +35,7 @@ RUN echo "APP_NAME=\"GES Bank API\"" > .env && \
     echo "DB_PASSWORD=zNk24j1UwvkG8eM9P4EyUJ8lBj2vzczX" >> .env && \
     echo "CACHE_DRIVER=file" >> .env && \
     echo "SESSION_DRIVER=file" >> .env && \
+    echo "QUEUE_CONNECTION=sync" >> .env && \
     echo "L5_SWAGGER_GENERATE_ALWAYS=false" >> .env && \
     php artisan key:generate
 
