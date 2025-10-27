@@ -36,6 +36,9 @@ RUN echo "APP_NAME=\"GES Bank API\"" > .env && \
     echo "CACHE_DRIVER=file" >> .env && \
     echo "SESSION_DRIVER=file" >> .env && \
     echo "QUEUE_CONNECTION=sync" >> .env && \
+    echo "REDIS_HOST=127.0.0.1" >> .env && \
+    echo "REDIS_PASSWORD=null" >> .env && \
+    echo "REDIS_PORT=6379" >> .env && \
     echo "L5_SWAGGER_GENERATE_ALWAYS=false" >> .env && \
     php artisan key:generate
 
