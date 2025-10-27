@@ -5,11 +5,10 @@ FROM php:8.3-apache
 RUN apt-get update && apt-get install -y \
     libpq-dev \
     libzip-dev \
-    libredis-dev \
     zip \
     unzip \
     git \
-    && docker-php-ext-install pdo pdo_pgsql zip redis
+    && docker-php-ext-install pdo pdo_pgsql zip
 
 # Installer Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
