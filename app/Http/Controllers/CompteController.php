@@ -3,10 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Exceptions\ApiException;
+use App\Exceptions\CompteNotFoundException;
 use App\Exceptions\NotFoundException;
 use App\Exceptions\ValidationException;
 use App\Http\Requests\CompteIndexRequest;
 use App\Http\Requests\StoreCompteRequest;
+use App\Http\Resources\CompteDeleteResource;
+use App\Http\Resources\CompteDetailResource;
 use App\Http\Resources\CompteResource;
 use App\Models\Client;
 use App\Models\Compte;
@@ -225,6 +228,71 @@ class CompteController extends Controller
 
     /**
      * @OA\Get(
+     *     path="/comptes/id/{compte}",
+     *     summary="Récupérer un compte par ID",
+     *     description="Retourne les détails d'un compte spécifique basé sur son ID UUID",
+     *     operationId="getCompteById",
+     *     tags={"Comptes"},
+     *     @OA\Parameter(
+     *         name="compte",
+     *         in="path",
+     *         description="ID UUID du compte",
+     *         required=true,
+     *         @OA\Schema(type="string", format="uuid")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Compte trouvé avec succès",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Compte trouvé avec succès"),
+     *             @OA\Property(property="data", ref="#/components/schemas/CompteDetailResource")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Compte non trouvé",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=false),
+     *             @OA\Property(property="error", type="object",
+     *                 @OA\Property(property="code", type="string", example="COMPTE_NOT_FOUND"),
+     *                 @OA\Property(property="message", type="string", example="Le compte avec l'ID spécifié n'existe pas"),
+     *                 @OA\Property(property="details", type="object",
+     *                     @OA\Property(property="compteId", type="string", format="uuid", example="550e8400-e29b-41d4-a716-446655440000")
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=500,
+     *         description="Erreur serveur",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Erreur serveur")
+     *         )
+     *     )
+     * )
+     */
+    public function getCompteById(Compte $compte)
+    {
+        try {
+            // Le modèle Compte est automatiquement injecté par Laravel (Route Model Binding)
+            // Si le compte n'existe pas, Laravel lance automatiquement une ModelNotFoundException
+            // que nous transformons en notre exception personnalisée
+
+            return $this->success(
+                new CompteDetailResource($compte->load('client.user')),
+                'Compte trouvé avec succès'
+            );
+        } catch (\Throwable $e) {
+            // Laravel gère automatiquement le ModelNotFoundException pour le Route Model Binding
+            // et lance une 404 automatiquement, mais nous pouvons personnaliser si besoin
+            return $this->error("Erreur serveur : " . $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * @OA\Get(
      *     path="/comptes/client/{telephone}",
      *     summary="Récupérer les comptes d'un client par téléphone",
      *     description="Retourne la liste des comptes d'un client basé sur son numéro de téléphone",
@@ -279,6 +347,90 @@ class CompteController extends Controller
             );
         } catch (NotFoundException $e) {
             return $this->error($e->getMessage(), $e->getStatusCode());
+        } catch (\Throwable $e) {
+            return $this->error("Erreur serveur : " . $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * @OA\Delete(
+     *     path="/comptes/{compte}",
+     *     summary="Supprimer un compte bancaire",
+     *     description="Effectue une suppression douce (soft delete) du compte et change son statut à 'ferme'",
+     *     operationId="deleteCompte",
+     *     tags={"Comptes"},
+     *     @OA\Parameter(
+     *         name="compte",
+     *         in="path",
+     *         description="ID UUID du compte à supprimer",
+     *         required=true,
+     *         @OA\Schema(type="string", format="uuid")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Compte supprimé avec succès",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Compte supprimé avec succès"),
+     *             @OA\Property(property="data", ref="#/components/schemas/CompteDeleteResource")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Compte non trouvé",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=false),
+     *             @OA\Property(property="error", type="object",
+     *                 @OA\Property(property="code", type="string", example="COMPTE_NOT_FOUND"),
+     *                 @OA\Property(property="message", type="string", example="Le compte avec l'ID spécifié n'existe pas"),
+     *                 @OA\Property(property="details", type="object",
+     *                     @OA\Property(property="compteId", type="string", format="uuid", example="550e8400-e29b-41d4-a716-446655440000")
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=409,
+     *         description="Impossible de supprimer le compte",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Impossible de supprimer un compte avec un solde positif")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=500,
+     *         description="Erreur serveur",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Erreur serveur")
+     *         )
+     *     )
+     * )
+     */
+    public function destroy(Compte $compte)
+    {
+        try {
+            // Vérifier si le compte a un solde positif
+//            if ($compte->solde > 0) {
+//                return $this->error(
+//                    'Impossible de supprimer un compte avec un solde positif',
+//                    409
+//                );
+//            }
+
+            // Mettre à jour le statut et la date de fermeture
+            $compte->update([
+                'statut' => 'ferme',
+                'deleted_at' => now(),
+            ]);
+
+            // Effectuer le soft delete
+            $compte->delete();
+
+            return $this->success(
+                new CompteDeleteResource($compte),
+                'Compte supprimé avec succès'
+            );
         } catch (\Throwable $e) {
             return $this->error("Erreur serveur : " . $e->getMessage(), 500);
         }

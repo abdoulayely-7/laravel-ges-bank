@@ -519,6 +519,112 @@
                 }
             }
         },
+        "/comptes/id/{compte}": {
+            "get": {
+                "tags": [
+                    "Comptes"
+                ],
+                "summary": "Récupérer un compte par ID",
+                "description": "Retourne les détails d'un compte spécifique basé sur son ID UUID",
+                "operationId": "getCompteById",
+                "parameters": [
+                    {
+                        "name": "compte",
+                        "in": "path",
+                        "description": "ID UUID du compte",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Compte trouvé avec succès",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Compte trouvé avec succès"
+                                        },
+                                        "data": {
+                                            "$ref": "#/components/schemas/CompteDetailResource"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Compte non trouvé",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "error": {
+                                            "properties": {
+                                                "code": {
+                                                    "type": "string",
+                                                    "example": "COMPTE_NOT_FOUND"
+                                                },
+                                                "message": {
+                                                    "type": "string",
+                                                    "example": "Le compte avec l'ID spécifié n'existe pas"
+                                                },
+                                                "details": {
+                                                    "properties": {
+                                                        "compteId": {
+                                                            "type": "string",
+                                                            "format": "uuid",
+                                                            "example": "550e8400-e29b-41d4-a716-446655440000"
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Erreur serveur",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Erreur serveur"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/comptes/client/{telephone}": {
             "get": {
                 "tags": [
@@ -607,10 +713,235 @@
                     }
                 }
             }
+        },
+        "/comptes/{compte}": {
+            "delete": {
+                "tags": [
+                    "Comptes"
+                ],
+                "summary": "Supprimer un compte bancaire",
+                "description": "Effectue une suppression douce (soft delete) du compte et change son statut à 'ferme'",
+                "operationId": "deleteCompte",
+                "parameters": [
+                    {
+                        "name": "compte",
+                        "in": "path",
+                        "description": "ID UUID du compte à supprimer",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Compte supprimé avec succès",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Compte supprimé avec succès"
+                                        },
+                                        "data": {
+                                            "$ref": "#/components/schemas/CompteDeleteResource"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Compte non trouvé",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "error": {
+                                            "properties": {
+                                                "code": {
+                                                    "type": "string",
+                                                    "example": "COMPTE_NOT_FOUND"
+                                                },
+                                                "message": {
+                                                    "type": "string",
+                                                    "example": "Le compte avec l'ID spécifié n'existe pas"
+                                                },
+                                                "details": {
+                                                    "properties": {
+                                                        "compteId": {
+                                                            "type": "string",
+                                                            "format": "uuid",
+                                                            "example": "550e8400-e29b-41d4-a716-446655440000"
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Impossible de supprimer le compte",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Impossible de supprimer un compte avec un solde positif"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Erreur serveur",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Erreur serveur"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     },
     "components": {
         "schemas": {
+            "CompteDeleteResource": {
+                "title": "Suppression de Compte",
+                "description": "Représentation d'un compte après suppression (soft delete)",
+                "properties": {
+                    "id": {
+                        "description": "Identifiant unique du compte",
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "numeroCompte": {
+                        "description": "Numéro du compte",
+                        "type": "string"
+                    },
+                    "statut": {
+                        "description": "Statut du compte après suppression",
+                        "type": "string",
+                        "enum": [
+                            "ferme"
+                        ]
+                    },
+                    "dateFermeture": {
+                        "description": "Date de fermeture du compte",
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "type": "object"
+            },
+            "CompteDetailResource": {
+                "title": "Détails du Compte",
+                "description": "Représentation détaillée d'un compte bancaire",
+                "properties": {
+                    "id": {
+                        "description": "Identifiant unique du compte",
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "numeroCompte": {
+                        "description": "Numéro du compte",
+                        "type": "string"
+                    },
+                    "titulaire": {
+                        "description": "Nom du titulaire du compte",
+                        "type": "string"
+                    },
+                    "type": {
+                        "description": "Type de compte",
+                        "type": "string",
+                        "enum": [
+                            "epargne",
+                            "courant",
+                            "cheque"
+                        ]
+                    },
+                    "solde": {
+                        "description": "Solde du compte",
+                        "type": "number",
+                        "format": "float"
+                    },
+                    "devise": {
+                        "description": "Devise du compte",
+                        "type": "string"
+                    },
+                    "dateCreation": {
+                        "description": "Date de création du compte",
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "statut": {
+                        "description": "Statut du compte",
+                        "type": "string",
+                        "enum": [
+                            "actif",
+                            "bloque"
+                        ]
+                    },
+                    "motifBlocage": {
+                        "description": "Motif du blocage si applicable",
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "metadata": {
+                        "properties": {
+                            "derniereModification": {
+                                "description": "Dernière modification",
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            "version": {
+                                "description": "Version de l'API",
+                                "type": "integer",
+                                "example": 1
+                            }
+                        },
+                        "type": "object"
+                    }
+                },
+                "type": "object"
+            },
             "CompteResource": {
                 "title": "Compte Resource",
                 "description": "Représentation d'un compte bancaire",
