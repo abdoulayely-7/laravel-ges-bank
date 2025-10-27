@@ -32,12 +32,7 @@ class Handler extends ExceptionHandler
                 $model = class_basename($e->getModel());
                 return response()->json([
                     'success' => false,
-                    'message' => "Le {$model} avec l'ID spécifié n'existe pas",
-                    'error' => [
-                        'code' => 'RESOURCE_NOT_FOUND',
-                        'model' => $model,
-                        'ids' => $e->getIds()
-                    ]
+                    'message' => "Le {$model} avec l'ID spécifié n'existe pas"
                 ], 404);
             }
         });
