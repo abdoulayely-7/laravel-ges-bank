@@ -4,7 +4,6 @@ namespace App\Exceptions;
 
 class NotFoundException extends ApiException
 {
-
     /**
      * Exception pour les ressources non trouvées
      */
@@ -14,6 +13,9 @@ class NotFoundException extends ApiException
             ? "{$resource} avec l'identifiant '{$identifier}' non trouvé"
             : "{$resource} non trouvé";
 
-        parent::__construct($message, 404);
+        parent::__construct($message, 404, [
+            'resource' => $resource,
+            'identifier' => $identifier
+        ]);
     }
 }
