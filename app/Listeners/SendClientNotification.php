@@ -96,10 +96,27 @@ class SendClientNotification
 
         // 🔹 Envoi du SMS
         try {
-            $message = "Bienvenue chez AppDAF ! Votre code de vérification est : {$code}";
-            $this->smsService->send($telephone, $message);
+            $message = "Bienvenue chez ECSA BANK ! Votre compte {$compte->numero_compte} a été créé avec succès. Solde initial: {$compte->solde} FCFA.";
+            $result = $this->smsService->send($telephone, $message);
+
+            if ($result) {
+                Log::info('SMS envoyé avec succès', [
+                    'compte_id' => $compte->id,
+                    'telephone' => $telephone,
+                    'numero_compte' => $compte->numero_compte,
+                    'solde' => $compte->solde
+                ]);
+            } else {
+                Log::warning('Échec envoi SMS', [
+                    'compte_id' => $compte->id,
+                    'telephone' => $telephone
+                ]);
+            }
         } catch (\Exception $e) {
-            Log::error('Erreur envoi SMS : ' . $e->getMessage());
+            Log::error('Erreur envoi SMS : ' . $e->getMessage(), [
+                'compte_id' => $compte->id,
+                'telephone' => $telephone
+            ]);
         }
     }
 }

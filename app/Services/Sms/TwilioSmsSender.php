@@ -23,12 +23,15 @@ class TwilioSmsSender implements SmsSenderInterface
     public function send(string $to, string $message): bool
     {
         try {
-            $this->client->messages->create($to, [
+            // Normaliser le numéro de téléphone
+            $normalizedTo = $this->normalizePhone($to);
+
+            $this->client->messages->create($normalizedTo, [
                 'from' => $this->from,
                 'body' => $message,
             ]);
 
-            Log::info("✅ SMS envoyé à $to");
+            Log::info("✅ SMS envoyé à $normalizedTo (original: $to)");
             return true;
         } catch (\Exception $e) {
             Log::error("❌ Erreur envoi SMS à $to : {$e->getMessage()}");

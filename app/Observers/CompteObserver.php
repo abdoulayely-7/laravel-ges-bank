@@ -32,8 +32,8 @@ class CompteObserver
      */
     public function updated(Compte $compte): void
     {
-        // Invalidation fine du cache avec tags
-        Cache::tags(['comptes'])->flush();
+        // Invalidation du cache
+        Cache::store('redis_no_tags')->clear();
 
         Log::info('Cache comptes invalidé après mise à jour', [
             'compte_id' => $compte->id,
@@ -46,8 +46,8 @@ class CompteObserver
      */
     public function deleted(Compte $compte): void
     {
-        // Invalidation fine du cache avec tags
-        Cache::tags(['comptes'])->flush();
+        // Invalidation du cache
+        Cache::store('redis_no_tags')->clear();
 
         Log::info('Cache comptes invalidé après suppression', [
             'compte_id' => $compte->id,
