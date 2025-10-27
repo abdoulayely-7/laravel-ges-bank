@@ -3,7 +3,7 @@ services:
     name: ges-bank-api
     runtime: docker
     buildCommand: "./build.sh"
-    startCommand: "docker run -p $PORT:80 ges-bank"
+    startCommand: "docker run -p 80:80 ges-bank"
     envVars:
       - key: APP_ENV
         value: production
