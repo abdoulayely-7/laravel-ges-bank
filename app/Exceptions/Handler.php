@@ -26,7 +26,22 @@ class Handler extends ExceptionHandler
         $this->reportable(function (Throwable $e) {
             //
         });
+
+        $this->renderable(function (\Illuminate\Database\Eloquent\ModelNotFoundException $e, $request) {
+            if ($request->is('api/*')) {
+                $model = class_basename($e->getModel());
+                return response()->json([
+                    'success' => false,
+                    'message' => "Le {$model} avec l'ID spécifié n'existe pas",
+                    'error' => [
+                        'code' => 'RESOURCE_NOT_FOUND',
+                        'model' => $model,
+                        'ids' => $e->getIds()
+                    ]
+                ], 404);
+            }
+        });
     }
 
-    
+
 }
