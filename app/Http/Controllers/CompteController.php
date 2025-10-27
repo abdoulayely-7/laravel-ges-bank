@@ -277,14 +277,14 @@ class CompteController extends Controller
      *     )
      * )
      */
-    public function getCompteById($compteId)
+    public function getCompteById(Compte $compte)
     {
         try {
-            $compte = Compte::find($compteId);
+            // $compte = Compte::find($compteId);
 
-            if (!$compte) {
-                throw new NotFoundException('Compte', $compteId);
-            }
+            // if (!$compte) {
+            //     throw new NotFoundException('Compte', $compteId);
+            // }
 
             return $this->success(
                 new CompteDetailResource($compte->load('client.user')),
