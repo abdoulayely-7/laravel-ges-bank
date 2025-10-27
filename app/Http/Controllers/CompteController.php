@@ -105,7 +105,7 @@ class CompteController extends Controller
      *         in="query",
      *         description="Filtrer uniquement les comptes actifs de type épargne ou chèque",
      *         required=false,
-     *         @OA\Schema(type="boolean", default=false)
+     *         @OA\Schema(type="string", enum={"true", "false"}, default="false")
      *     ),
      *     @OA\Response(
      *         response=200,

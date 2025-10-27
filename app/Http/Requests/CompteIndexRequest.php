@@ -29,7 +29,7 @@ class CompteIndexRequest extends FormRequest
             'search' => 'nullable|string|max:255',
             'sort'   => 'nullable|in:dateCreation,solde,titulaire',
             'order'  => 'nullable|in:asc,desc',
-            'actifs_epargne_cheque' => 'nullable|boolean',
+            'actifs_epargne_cheque' => 'nullable|in:true,false,1,0',
         ];
     }
 
@@ -43,7 +43,7 @@ class CompteIndexRequest extends FormRequest
             'statut.in' => "Le statut doit être 'actif' ou 'bloque'.",
             'sort.in' => "Le tri doit être 'dateCreation', 'solde' ou 'titulaire'.",
             'order.in' => "Le paramètre 'order' doit être 'asc' ou 'desc'.",
-            'actifs_epargne_cheque.boolean' => "Le paramètre 'actifs_epargne_cheque' doit être un booléen.",
+            'actifs_epargne_cheque.in' => "Le paramètre 'actifs_epargne_cheque' doit être 'true', 'false', '1' ou '0'.",
         ];
     }
 
