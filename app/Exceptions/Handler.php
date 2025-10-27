@@ -28,7 +28,7 @@ class Handler extends ExceptionHandler
         });
 
         $this->renderable(function (\Illuminate\Database\Eloquent\ModelNotFoundException $e, $request) {
-            if ($request->is('api/*')) {
+            if ($request->is('ly/*')) {
                 $model = class_basename($e->getModel());
                 return response()->json([
                     'success' => false,
