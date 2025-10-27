@@ -23,7 +23,18 @@ COPY . /var/www/html
 RUN composer install --optimize-autoloader --no-dev
 
 # Créer le fichier .env et générer la clé d'application Laravel
-RUN cp .env.production .env && php artisan key:generate
+RUN echo "APP_NAME=\"GES Bank API\"" > .env && \
+    echo "APP_ENV=production" >> .env && \
+    echo "APP_KEY=" >> .env && \
+    echo "APP_DEBUG=false" >> .env && \
+    echo "DB_CONNECTION=pgsql" >> .env && \
+    echo "DB_HOST=dpg-d3v8l6ali9vc73ckvc00-a.oregon-postgres.render.com" >> .env && \
+    echo "DB_PORT=5432" >> .env && \
+    echo "DB_DATABASE=bank_laravel_api" >> .env && \
+    echo "DB_USERNAME=bank_laravel_api_user" >> .env && \
+    echo "DB_PASSWORD=zNk24j1UwvkG8eM9P4EyUJ8lBj2vzczX" >> .env && \
+    echo "L5_SWAGGER_GENERATE_ALWAYS=false" >> .env && \
+    php artisan key:generate
 
 # Générer la documentation Swagger
 RUN php artisan l5-swagger:generate
