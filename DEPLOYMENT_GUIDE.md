@@ -11,7 +11,7 @@ Ce guide explique comment déployer votre application Laravel avec documentation
 ## Fichiers de configuration créés
 
 ### 1. Dockerfile
-Le Dockerfile configure une image PHP 8.2 avec Apache, installe les dépendances et configure Laravel pour la production.
+Le Dockerfile configure une image PHP 8.3 avec Apache, installe les dépendances et configure Laravel pour la production.
 
 ### 2. docker-compose.yml
 Fichier pour les tests locaux avec PostgreSQL.
@@ -114,9 +114,9 @@ Tous les fichiers nécessaires sont créés. Voici ce que vous devez faire :
 - ✅ **Production-ready** : Optimisé pour la production
 
 ### 3.4 Mise à jour PHP pour Render :
-Les dépendances nécessitent PHP 8.2+. Modifiez :
-- `Dockerfile` : `FROM php:8.2-apache`
-- `composer.json` : `"php": "^8.2"`
+Les dépendances nécessitent PHP 8.3+. Modifiez :
+- `Dockerfile` : `FROM php:8.3-apache`
+- `composer.json` : `"php": "^8.3"`
 
 ## Étape 4 : Migration de la base de données
 
