@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Laravel\Sanctum\HasApiTokens;
+use Laravel\Passport\HasApiTokens;
 
 class User extends Authenticatable
 {
@@ -37,6 +37,27 @@ class User extends Authenticatable
     {
         return $this->hasOne(Admin::class);
     }
+
+    public function token()
+    {
+        return $this->hasMany(\Laravel\Passport\Token::class);
+    }
+
+    public function getRoleAttribute()
+    {
+        if ($this->client) return 'client';
+        if ($this->admin) return 'admin';
+        return 'user';
+    }
+
+    public function getClaims()
+    {
+        return [
+            'role' => $this->role,
+        ];
+    }
+
+
 
     /**
      * The attributes that should be hidden for serialization.
