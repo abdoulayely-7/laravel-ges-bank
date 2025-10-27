@@ -288,6 +288,9 @@ class CompteController extends Controller
                 new CompteDetailResource($compte->load('client.user')),
                 'Compte trouvé avec succès'
             );
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            // Gestion spécifique de l'exception ModelNotFoundException
+            return $this->error("Le compte avec l'ID spécifié n'existe pas", 404);
         } catch (\Throwable $e) {
             // Laravel gère automatiquement le ModelNotFoundException pour le Route Model Binding
             // et lance une 404 automatiquement, mais nous pouvons personnaliser si besoin
