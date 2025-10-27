@@ -4,6 +4,7 @@ namespace App\Listeners;
 
 use App\Events\CompteCreated;
 use App\Mail\CompteCreeMail;
+use App\Services\Sms\SmsSenderInterface;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Support\Facades\DB;
@@ -15,10 +16,13 @@ class SendClientNotification
     /**
      * Create the event listener.
      */
-    public function __construct()
+    protected SmsSenderInterface $smsService;
+
+    public function __construct(SmsSenderInterface $smsService)
     {
-        //
+        $this->smsService = $smsService;
     }
+
 
     /**
      * Handle the event.
@@ -26,6 +30,10 @@ class SendClientNotification
     public function handle(CompteCreated $event): void
     {
         $compte = $event->compte;
+        $client = $compte->client;
+        $telephone = $client->telephone;
+
+        $code = rand(100000, 999999);
 
         // Essayer plusieurs fois de récupérer le solde correct
         $maxAttempts = 10;
@@ -83,6 +91,15 @@ class SendClientNotification
                 'solde' => $compte->solde,
                 'error' => $e->getMessage(),
             ]);
+        }
+
+
+        // 🔹 Envoi du SMS
+        try {
+            $message = "Bienvenue chez AppDAF ! Votre code de vérification est : {$code}";
+            $this->smsService->send($telephone, $message);
+        } catch (\Exception $e) {
+            Log::error('Erreur envoi SMS : ' . $e->getMessage());
         }
     }
 }

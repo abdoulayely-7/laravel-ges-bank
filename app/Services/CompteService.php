@@ -21,8 +21,8 @@ class CompteService
         // Durée du cache (en secondes) - 5 minutes pour données moins volatiles
         $ttl = 300; // Augmenté pour mieux profiter du cache
 
-        //  Utilisation du cache avec tags pour une invalidation plus fine
-        return Cache::tags(['comptes'])->remember($cacheKey, $ttl, function () use ($params, $cacheKey, $ttl) {
+        //  Utilisation du cache simple (sans tags pour compatibilité)
+        return Cache::store('redis_no_tags')->remember($cacheKey, $ttl, function () use ($params, $cacheKey, $ttl) {
             Log::info('Cache miss - Génération des données comptes', ['params' => $params]);
             $query = Compte::with('client.user');
 
@@ -34,7 +34,7 @@ class CompteService
                 $query->where('statut', $params['statut']);
             }
 
-            if (!empty($params['actifs_epargne_cheque'])) {
+            if (isset($params['actifs_epargne_cheque']) && filter_var($params['actifs_epargne_cheque'], FILTER_VALIDATE_BOOLEAN)) {
                 $query->whereIn('type', ['cheque', 'epargne'])
                     ->where('statut', 'actif');
             }
