@@ -3,6 +3,8 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use App\Rules\SenegalTelephone;
+use App\Rules\SenegalNci;
 
 class UpdateClientRequest extends FormRequest
 {
@@ -24,10 +26,10 @@ class UpdateClientRequest extends FormRequest
         return [
             'titulaire' => 'sometimes|string|max:255',
             'informationsClient' => 'sometimes|array',
-            'informationsClient.telephone' => 'sometimes|string|regex:/^(\+221|221)?[76|7]\d{8}$/|unique:clients,telephone,' . $this->route('compte')->client_id,
-            'informationsClient.email' => 'sometimes|email|unique:users,email,' . $this->route('compte')->client->user_id,
+            'informationsClient.telephone' => ['sometimes', 'string', new SenegalTelephone(), 'unique:clients,telephone,' . ($this->route('compte') ? $this->route('compte')->client_id : 'null')],
+            'informationsClient.email' => 'sometimes|email|unique:users,email,' . ($this->route('compte') ? $this->route('compte')->client->user_id : 'null'),
             'informationsClient.password' => 'sometimes|string|min:8',
-            'informationsClient.nci' => 'sometimes|string|max:20|unique:clients,nci,' . $this->route('compte')->client_id,
+            'informationsClient.nci' => ['sometimes', 'string', 'max:20', new SenegalNci(), 'unique:clients,nci,' . ($this->route('compte') ? $this->route('compte')->client_id : 'null')],
         ];
     }
 
@@ -58,15 +60,13 @@ class UpdateClientRequest extends FormRequest
         return [
             'titulaire.string' => 'Le nom du titulaire doit être une chaîne de caractères.',
             'titulaire.max' => 'Le nom du titulaire ne peut pas dépasser 255 caractères.',
-            'informationsClient.telephone.regex' => 'Le numéro de téléphone doit être un numéro sénégalais valide (ex: +221771234567).',
+            'informationsClient.telephone' => 'Le numéro de téléphone doit être un numéro sénégalais valide.',
             'informationsClient.telephone.unique' => 'Ce numéro de téléphone est déjà utilisé.',
             'informationsClient.email.email' => 'L\'adresse email doit être valide.',
             'informationsClient.email.unique' => 'Cette adresse email est déjà utilisée.',
             'informationsClient.password.min' => 'Le mot de passe doit contenir au moins 8 caractères.',
             'informationsClient.password.string' => 'Le mot de passe doit être une chaîne de caractères.',
-            'informationsClient.nci.string' => 'Le numéro de carte d\'identité doit être une chaîne de caractères.',
-            'informationsClient.nci.max' => 'Le numéro de carte d\'identité ne peut pas dépasser 20 caractères.',
-            'informationsClient.nci.unique' => 'Ce numéro de carte d\'identité est déjà utilisé.',
+            'informationsClient.nci' => 'Le NCI doit être un numéro de maximum 13 chiffres commençant par 1 ou 2.',
         ];
     }
 }
