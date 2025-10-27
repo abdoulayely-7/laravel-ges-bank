@@ -2,6 +2,7 @@
 
 namespace App\Exceptions;
 
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
 use Throwable;
 
@@ -26,17 +27,24 @@ class Handler extends ExceptionHandler
         $this->reportable(function (Throwable $e) {
             //
         });
-
-        $this->renderable(function (\Illuminate\Database\Eloquent\ModelNotFoundException $e, $request) {
-            if ($request->is('ly/*')) {
-                $model = class_basename($e->getModel());
-                return response()->json([
-                    'success' => false,
-                    'message' => "Le {$model} avec l'ID spécifié n'existe pas"
-                ], 404);
-            }
-        });
     }
 
+    public function render($request, Throwable $e)
+    {
+        // Gérer les modèles non trouvés (ex: route model binding)
+        if ($e instanceof ModelNotFoundException) {
+            $model = class_basename($e->getModel());
+            $ids = $e->getIds();
+            $id = is_array($ids) ? implode(', ', $ids) : $ids;
 
+            throw new NotFoundException($model, $id);
+        }
+
+        // Si c’est déjà une ApiException (comme NotFoundException)
+        if ($e instanceof ApiException) {
+            return $e->render();
+        }
+
+        return parent::render($request, $e);
+    }
 }
