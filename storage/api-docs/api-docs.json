@@ -7,6 +7,10 @@
     },
     "servers": [
         {
+            "url": "https://abdoulaye-lylaravel-ges-bank.onrender.com/ly/v1",
+            "description": "Serveur de production"
+        },
+        {
             "url": "http://localhost:8000/ly/v1",
             "description": "Serveur de développement"
         }
@@ -446,19 +450,19 @@
                                                     "properties": {
                                                         "self": {
                                                             "type": "string",
-                                                            "example": "http://localhost:8000/api/v1/comptes?page=1"
+                                                            "example": "https://abdoulaye-lylaravel-ges-bank.onrender.com/ly/v1/comptes?page=1"
                                                         },
                                                         "next": {
                                                             "type": "string",
-                                                            "example": "http://localhost:8000/api/v1/comptes?page=2"
+                                                            "example": "https://abdoulaye-lylaravel-ges-bank.onrender.com/ly/v1/comptes?page=2"
                                                         },
                                                         "first": {
                                                             "type": "string",
-                                                            "example": "http://localhost:8000/api/v1/comptes?page=1"
+                                                            "example": "https://abdoulaye-lylaravel-ges-bank.onrender.com/ly/v1/comptes?page=1"
                                                         },
                                                         "last": {
                                                             "type": "string",
-                                                            "example": "http://localhost:8000/api/v1/comptes?page=5"
+                                                            "example": "https://abdoulaye-lylaravel-ges-bank.onrender.com/ly/v1/comptes?page=5"
                                                         }
                                                     },
                                                     "type": "object"
