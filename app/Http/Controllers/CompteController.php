@@ -277,23 +277,22 @@ class CompteController extends Controller
      *     )
      * )
      */
-    public function getCompteById(Compte $compte)
+    public function getCompteById($compteId)
     {
         try {
-            // Le modèle Compte est automatiquement injecté par Laravel (Route Model Binding)
-            // Si le compte n'existe pas, Laravel lance automatiquement une ModelNotFoundException
-            // que nous transformons en notre exception personnalisée
+            $compte = Compte::find($compteId);
+
+            if (!$compte) {
+                throw new NotFoundException('Compte', $compteId);
+            }
 
             return $this->success(
                 new CompteDetailResource($compte->load('client.user')),
                 'Compte trouvé avec succès'
             );
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-            // Gestion spécifique de l'exception ModelNotFoundException
-            return $this->error("Le compte avec l'ID spécifié n'existe pas", 404);
+        } catch (NotFoundException $e) {
+            return $this->error($e->getMessage(), $e->getStatusCode());
         } catch (\Throwable $e) {
-            // Laravel gère automatiquement le ModelNotFoundException pour le Route Model Binding
-            // et lance une 404 automatiquement, mais nous pouvons personnaliser si besoin
             return $this->error("Erreur serveur : " . $e->getMessage(), 500);
         }
     }
