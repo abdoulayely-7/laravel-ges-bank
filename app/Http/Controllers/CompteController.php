@@ -25,6 +25,10 @@ use Illuminate\Http\Request;
  * )
  *
  * @OA\Server(
+ *     url="https://abdoulaye-lylaravel-ges-bank.onrender.com/ly/v1",
+ *     description="Serveur de production"
+ * )
+ * @OA\Server(
  *     url="http://localhost:8000/ly/v1",
  *     description="Serveur de développement"
  * )
@@ -122,10 +126,10 @@ class CompteController extends Controller
      *                     @OA\Property(property="hasPrevious", type="boolean", example=false)
      *                 ),
      *                 @OA\Property(property="links", type="object",
-     *                     @OA\Property(property="self", type="string", example="http://localhost:8000/api/v1/comptes?page=1"),
-     *                     @OA\Property(property="next", type="string", example="http://localhost:8000/api/v1/comptes?page=2"),
-     *                     @OA\Property(property="first", type="string", example="http://localhost:8000/api/v1/comptes?page=1"),
-     *                     @OA\Property(property="last", type="string", example="http://localhost:8000/api/v1/comptes?page=5")
+     *                     @OA\Property(property="self", type="string", example="https://abdoulaye-lylaravel-ges-bank.onrender.com/ly/v1/comptes?page=1"),
+     *                     @OA\Property(property="next", type="string", example="https://abdoulaye-lylaravel-ges-bank.onrender.com/ly/v1/comptes?page=2"),
+     *                     @OA\Property(property="first", type="string", example="https://abdoulaye-lylaravel-ges-bank.onrender.com/ly/v1/comptes?page=1"),
+     *                     @OA\Property(property="last", type="string", example="https://abdoulaye-lylaravel-ges-bank.onrender.com/ly/v1/comptes?page=5")
      *                 )
      *             )
      *         )
