@@ -8,6 +8,7 @@ use App\Exceptions\NotFoundException;
 use App\Exceptions\ValidationException;
 use App\Http\Requests\CompteIndexRequest;
 use App\Http\Requests\StoreCompteRequest;
+use App\Http\Requests\UpdateClientRequest;
 use App\Http\Resources\CompteDeleteResource;
 use App\Http\Resources\CompteDetailResource;
 use App\Http\Resources\CompteResource;
@@ -16,6 +17,7 @@ use App\Models\Compte;
 use App\Services\CompteService;
 use App\Traits\ApiResponseTrait;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 /**
  * @OA\Info(
@@ -359,6 +361,125 @@ class CompteController extends Controller
     }
 
     /**
+     * @OA\Patch(
+     *     path="/comptes/{compte}",
+     *     summary="Mettre à jour les informations du client",
+     *     description="Met à jour les informations du client associé à un compte bancaire",
+     *     operationId="updateClient",
+     *     tags={"Comptes"},
+     *     @OA\Parameter(
+     *         name="compte",
+     *         in="path",
+     *         description="ID UUID du compte",
+     *         required=true,
+     *         @OA\Schema(type="string", format="uuid")
+     *     ),
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             @OA\Property(property="titulaire", type="string", example="Amadou Diallo Junior"),
+     *             @OA\Property(property="informationsClient", type="object",
+     *                 @OA\Property(property="telephone", type="string", example="+221771234568"),
+     *                 @OA\Property(property="email", type="string", format="email", example="amadou.diallo@example.com"),
+     *                 @OA\Property(property="password", type="string", example="nouveauMotDePasse123"),
+     *                 @OA\Property(property="nci", type="string", example="1234567890123")
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Client mis à jour avec succès",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Client mis à jour avec succès"),
+     *             @OA\Property(property="data", ref="#/components/schemas/CompteResource")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=400,
+     *         description="Données invalides",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Au moins un champ de modification doit être fourni"),
+     *             @OA\Property(property="errors", type="object")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Compte non trouvé",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Le Compte avec l'ID spécifié n'existe pas")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=500,
+     *         description="Erreur serveur",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Erreur serveur")
+     *         )
+     *     )
+     * )
+     */
+    public function updateClient(UpdateClientRequest $request, Compte $compte)
+    {
+        try {
+            $validatedData = $request->validated();
+
+            // Préparer les données de mise à jour
+            $userData = [];
+            $clientData = [];
+
+            // Traiter le titulaire (nom de l'utilisateur)
+            if (isset($validatedData['titulaire'])) {
+                $userData['name'] = $validatedData['titulaire'];
+            }
+
+            // Traiter les informations client
+            if (isset($validatedData['informationsClient'])) {
+                $clientInfo = $validatedData['informationsClient'];
+
+                if (isset($clientInfo['telephone'])) {
+                    $clientData['telephone'] = $clientInfo['telephone'];
+                }
+
+                if (isset($clientInfo['nci'])) {
+                    $clientData['nci'] = $clientInfo['nci'];
+                }
+
+                if (isset($clientInfo['email'])) {
+                    $userData['email'] = $clientInfo['email'];
+                }
+
+                if (isset($clientInfo['password'])) {
+                    $userData['password'] = bcrypt($clientInfo['password']);
+                }
+            }
+
+            // Mettre à jour l'utilisateur si des données sont fournies
+            if (!empty($userData)) {
+                $compte->client->user->update($userData);
+            }
+
+            // Mettre à jour le client si des données sont fournies
+            if (!empty($clientData)) {
+                $compte->client->update($clientData);
+            }
+
+            // Invalidation du cache
+            Cache::store('redis_no_tags')->clear();
+
+            return $this->success(
+                new CompteResource($compte->load('client.user')),
+                'Client mis à jour avec succès'
+            );
+        } catch (\Throwable $e) {
+            return $this->error("Erreur serveur : " . $e->getMessage(), 500);
+        }
+    }
+
+    /**
      * @OA\Delete(
      *     path="/comptes/{compte}",
      *     summary="Supprimer un compte bancaire",
@@ -386,13 +507,7 @@ class CompteController extends Controller
      *         description="Compte non trouvé",
      *         @OA\JsonContent(
      *             @OA\Property(property="success", type="boolean", example=false),
-     *             @OA\Property(property="error", type="object",
-     *                 @OA\Property(property="code", type="string", example="COMPTE_NOT_FOUND"),
-     *                 @OA\Property(property="message", type="string", example="Le compte avec l'ID spécifié n'existe pas"),
-     *                 @OA\Property(property="details", type="object",
-     *                     @OA\Property(property="compteId", type="string", format="uuid", example="550e8400-e29b-41d4-a716-446655440000")
-     *                 )
-     *             )
+     *             @OA\Property(property="message", type="string", example="Le Compte avec l'ID spécifié n'existe pas")
      *         )
      *     ),
      *     @OA\Response(

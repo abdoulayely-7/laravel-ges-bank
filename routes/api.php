@@ -62,5 +62,5 @@ Route::prefix('v1')->group(function () {
     Route::get('comptes/id/{compte}', [CompteController::class, 'getCompteById'])->name('comptes.show.id');
     Route::get('comptes/client/{telephone}', [CompteController::class, 'getComptesByTelephone']);
     Route::delete('comptes/{compte}', [CompteController::class, 'destroy']);
-    // Route::patch('comptes/{compte}', [CompteController::class, 'update']);
+    Route::patch('comptes/{compte}', [CompteController::class, 'updateClient']);
 });
