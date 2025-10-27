@@ -93,18 +93,19 @@ Tous les fichiers nécessaires sont créés. Voici ce que vous devez faire :
 1. **Commitez et pushez vos fichiers** sur GitHub :
    ```bash
    git add .
-   git commit -m "Add deployment configuration for Render"
+   git commit -m "Configure deployment with existing PostgreSQL database"
    git push origin main
    ```
 
-2. **Créez un Blueprint sur Render** :
+2. **Créez un Web Service sur Render** :
    - Allez sur https://dashboard.render.com
-   - "New" → "Blueprint"
+   - "New" → "Web Service"
    - Connectez votre repo GitHub
-   - Render détectera `render.yaml` et créera automatiquement :
-     - Le service web avec Docker
-     - La base de données PostgreSQL
-     - Toutes les connexions nécessaires
+   - **Name**: ges-bank-api
+   - **Runtime**: Docker
+   - **Build Command**: `./build.sh`
+   - **Start Command**: `docker run -p $PORT:80 ges-bank`
+   - Dans les variables d'environnement, tout est déjà configuré dans `render.yaml`
 
 ### 3.2 Avantages de cette configuration :
 - ✅ **Automatique** : Render gère tout via `render.yaml`

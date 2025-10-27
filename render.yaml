@@ -12,30 +12,15 @@ services:
       - key: DB_CONNECTION
         value: pgsql
       - key: DB_HOST
-        fromService:
-          type: pserv
-          name: ges-bank-db
-          property: host
+        value: dpg-d3v8l6ali9vc73ckvc00-a.oregon-postgres.render.com
       - key: DB_PORT
-        fromService:
-          type: pserv
-          name: ges-bank-db
-          property: port
+        value: "5432"
       - key: DB_DATABASE
-        fromService:
-          type: pserv
-          name: ges-bank-db
-          property: database
+        value: bank_laravel_api
       - key: DB_USERNAME
-        fromService:
-          type: pserv
-          name: ges-bank-db
-          property: user
+        value: bank_laravel_api_user
       - key: DB_PASSWORD
-        fromService:
-          type: pserv
-          name: ges-bank-db
-          property: password
+        value: zNk24j1UwvkG8eM9P4EyUJ8lBj2vzczX
       - key: L5_SWAGGER_GENERATE_ALWAYS
         value: false
       - key: APP_URL
@@ -44,10 +29,3 @@ services:
           name: ges-bank-api
           property: host
 
-  - type: pserv
-    name: ges-bank-db
-    runtime: postgres
-    databaseName: ges_bank_prod
-    user: ges_bank_user
-    plan: starter
-    ipAllowList: []  # Permettre l'accès depuis Render uniquement

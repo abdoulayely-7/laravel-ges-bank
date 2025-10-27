@@ -22,8 +22,8 @@ COPY . /var/www/html
 # Installer les dépendances PHP
 RUN composer install --optimize-autoloader --no-dev
 
-# Générer la clé d'application Laravel
-RUN php artisan key:generate
+# Créer le fichier .env et générer la clé d'application Laravel
+RUN cp .env.production .env && php artisan key:generate
 
 # Générer la documentation Swagger
 RUN php artisan l5-swagger:generate
