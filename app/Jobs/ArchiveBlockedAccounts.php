@@ -90,6 +90,9 @@ class ArchiveBlockedAccounts implements ShouldQueue
      */
     private function moveToNeon(string $table, array $data): void
     {
+        // Créer la table si elle n'existe pas
+        $this->createTableIfNotExists($table);
+
         // Convertir les dates Carbon en string
         foreach ($data as $key => $value) {
             if ($value instanceof \Carbon\Carbon) {
@@ -98,5 +101,110 @@ class ArchiveBlockedAccounts implements ShouldQueue
         }
 
         DB::connection('neon')->table($table)->insert($data);
+    }
+
+    /**
+     * Crée la table dans Neon si elle n'existe pas
+     */
+    private function createTableIfNotExists(string $table): void
+    {
+        $tableExists = DB::connection('neon')->select("SELECT EXISTS (
+            SELECT FROM information_schema.tables
+            WHERE table_schema = 'public'
+            AND table_name = ?
+        )", [$table]);
+
+        if (!$tableExists[0]->exists) {
+            // Créer la table en copiant la structure depuis la base principale
+            $createTableSQL = $this->getCreateTableSQL($table);
+            if ($createTableSQL) {
+                DB::connection('neon')->statement($createTableSQL);
+                Log::info("Created table {$table} in Neon database");
+            }
+        }
+    }
+
+    /**
+     * Génère le SQL CREATE TABLE en se basant sur la structure existante
+     */
+    private function getCreateTableSQL(string $table): ?string
+    {
+        try {
+            // Récupérer la structure de la table depuis la base principale
+            $columns = DB::select("SELECT column_name, data_type, is_nullable, column_default
+                                  FROM information_schema.columns
+                                  WHERE table_name = ? AND table_schema = 'public'
+                                  ORDER BY ordinal_position", [$table]);
+
+            if (empty($columns)) {
+                return null;
+            }
+
+            $sql = "CREATE TABLE \"{$table}\" (";
+
+            $columnDefs = [];
+            foreach ($columns as $column) {
+                $colDef = "\"{$column->column_name}\" ";
+
+                // Mapper les types PostgreSQL
+                switch ($column->data_type) {
+                    case 'character varying':
+                        $colDef .= 'VARCHAR(255)';
+                        break;
+                    case 'uuid':
+                        $colDef .= 'UUID';
+                        break;
+                    case 'timestamp without time zone':
+                        $colDef .= 'TIMESTAMP';
+                        break;
+                    case 'integer':
+                        $colDef .= 'INTEGER';
+                        break;
+                    case 'numeric':
+                        $colDef .= 'DECIMAL';
+                        break;
+                    case 'boolean':
+                        $colDef .= 'BOOLEAN';
+                        break;
+                    case 'text':
+                        $colDef .= 'TEXT';
+                        break;
+                    default:
+                        $colDef .= 'VARCHAR(255)';
+                }
+
+                if ($column->is_nullable === 'NO') {
+                    $colDef .= ' NOT NULL';
+                }
+
+                if ($column->column_default !== null) {
+                    $colDef .= ' DEFAULT ' . $column->column_default;
+                }
+
+                $columnDefs[] = $colDef;
+            }
+
+            // Ajouter les clés primaires pour les tables principales
+            if ($table === 'users') {
+                $columnDefs[] = 'PRIMARY KEY ("id")';
+            } elseif ($table === 'clients') {
+                $columnDefs[] = 'PRIMARY KEY ("id")';
+                $columnDefs[] = 'FOREIGN KEY ("user_id") REFERENCES "users"("id")';
+            } elseif ($table === 'comptes') {
+                $columnDefs[] = 'PRIMARY KEY ("id")';
+                $columnDefs[] = 'FOREIGN KEY ("client_id") REFERENCES "clients"("id")';
+            } elseif ($table === 'transactions') {
+                $columnDefs[] = 'PRIMARY KEY ("id")';
+                $columnDefs[] = 'FOREIGN KEY ("compte_id") REFERENCES "comptes"("id")';
+            }
+
+            $sql .= implode(', ', $columnDefs) . ')';
+
+            return $sql;
+
+        } catch (\Exception $e) {
+            Log::error("Failed to create table {$table}: " . $e->getMessage());
+            return null;
+        }
     }
 }
