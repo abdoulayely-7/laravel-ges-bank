@@ -63,4 +63,6 @@ Route::prefix('v1')->group(function () {
     Route::get('comptes/client/{telephone}', [CompteController::class, 'getComptesByTelephone']);
     Route::delete('comptes/{compte}', [CompteController::class, 'destroy']);
     Route::patch('comptes/{compte}', [CompteController::class, 'updateClient']);
+    Route::post('comptes/{compte}/bloquer', [CompteController::class, 'bloquer']);
+    Route::post('comptes/{compte}/debloquer', [CompteController::class, 'debloquer']);
 });
