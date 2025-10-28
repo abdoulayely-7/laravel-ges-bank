@@ -24,6 +24,12 @@ class Compte extends Model
         'statut',
         'motif_blocage',
         'date_creation',
+        'date_debut_blocage_planifiee',
+        'duree_blocage_valeur',
+        'duree_blocage_unite',
+        'date_debut_blocage',
+        'date_fin_blocage_prevue',
+        'date_fin_blocage',
     ];
 
 

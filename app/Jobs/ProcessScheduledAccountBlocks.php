@@ -50,8 +50,9 @@ class ProcessScheduledAccountBlocks implements ShouldQueue
 
                 try {
                     // Calculer la date de fin de blocage
+                    $startDate = \Carbon\Carbon::parse($compte->date_debut_blocage_planifiee);
                     $endDate = $this->calculateEndDate(
-                        $compte->date_debut_blocage_planifiee,
+                        $startDate,
                         $compte->duree_blocage_valeur,
                         $compte->duree_blocage_unite
                     );
