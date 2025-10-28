@@ -43,12 +43,14 @@ class ProcessScheduledAccountBlocks implements ShouldQueue
                 return;
             }
 
-            Log::info("Found {$accountsToBlock->count()} accounts to block");
+            Log::info("Found {$accountsToBlock->count()} accounts scheduled for blocking");
 
             foreach ($accountsToBlock as $compte) {
                 DB::beginTransaction();
 
                 try {
+                    Log::info("Processing account {$compte->id} - Scheduled: {$compte->date_debut_blocage_planifiee}, Now: " . now());
+
                     // Calculer la date de fin de blocage
                     $startDate = \Carbon\Carbon::parse($compte->date_debut_blocage_planifiee);
                     $endDate = $this->calculateEndDate(
@@ -57,12 +59,14 @@ class ProcessScheduledAccountBlocks implements ShouldQueue
                         $compte->duree_blocage_unite
                     );
 
+                    Log::info("Calculated end date: {$endDate} for account {$compte->id}");
+
                     // Mettre à jour le compte
                     $compte->update([
                         'statut' => 'bloque',
                         'date_debut_blocage' => $compte->date_debut_blocage_planifiee,
                         'date_fin_blocage_prevue' => $endDate,
-                        'motif_blocage' => 'Blocage planifié automatique',
+                        'motif_blocage' => 'Blocage planifié automatique - ' . $compte->motif_blocage,
                     ]);
 
                     // Nettoyer les champs de planification
