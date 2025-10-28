@@ -577,7 +577,7 @@ class CompteController extends Controller
      *                         @OA\Property(property="id", type="string", format="uuid", description="ID du client existant"),
      *                         @OA\Property(property="titulaire", type="string", example="Cheikh Sy"),
      *                         @OA\Property(property="email", type="string", format="email", example="cheikh.sy@example.com"),
-     *                         @OA\Property(property="telephone", type="string", example="+221771234567"),
+     *                         @OA\Property(property="telephone", type="string", example="771234567"),
      *                         @OA\Property(property="nci", type="string", example="1234567890123"),
      *                         @OA\Property(property="adresse", type="string", example="Dakar, Sénégal")
      *                     )
