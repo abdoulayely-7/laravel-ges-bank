@@ -151,9 +151,24 @@ curl -X POST http://localhost:8000/api/v1/comptes/{UUID_COMPTE_COURANT}/bloquer 
 
 ### 3.3 Tests de Blocage Planifié
 
-#### Test 1: Blocage dans 5 Minutes
+#### Test 1: Blocage dans 5 Minutes (Exemple Swagger)
+Dans Swagger UI, utilisez cette date pour tester :
+
+**Date valide** : `2025-10-28T12:51:00Z` (si on est le 28 octobre 2025 à 12h46)
+
+**Requête complète dans Swagger** :
+```json
+{
+  "dateDebut": "2025-10-28T12:51:00Z",
+  "duree": 30,
+  "unite": "minutes",
+  "motif": "Test blocage planifié 30 minutes"
+}
+```
+
+**Via cURL** :
 ```bash
-# Calculer la date dans 5 minutes
+# Calculer automatiquement la date dans 5 minutes
 DATE_FUTURE=$(date -u +"%Y-%m-%dT%H:%M:%SZ" -d "+5 minutes")
 
 curl -X POST http://localhost:8000/api/v1/comptes/{UUID_DU_COMPTE}/planifier-blocage \
@@ -182,21 +197,70 @@ curl -X POST http://localhost:8000/api/v1/comptes/{UUID_DU_COMPTE}/planifier-blo
 }
 ```
 
-#### Test 2: Blocage dans 2 Heures
-```bash
-DATE_FUTURE=$(date -u +"%Y-%m-%dT%H:%M:%SZ" -d "+2 hours")
+#### Test 2: Blocage dans 2 Heures (Exemple Swagger)
+Dans Swagger UI, utilisez cette date pour tester :
 
-curl -X POST http://localhost:8000/api/v1/comptes/{UUID_DU_COMPTE}/planifier-blocage \
-  -H "Content-Type: application/json" \
-  -d '{
-    "dateDebut": "'$DATE_FUTURE'",
-    "duree": 4,
-    "unite": "heures",
-    "motif": "Maintenance serveur"
-  }'
+**Date valide** : `2025-10-28T14:30:00Z` (si on est le 28 octobre 2025 avant 14h30)
+
+**Requête complète dans Swagger** :
+```json
+{
+  "dateDebut": "2025-10-28T14:30:00Z",
+  "duree": 4,
+  "unite": "heures",
+  "motif": "Maintenance serveur"
+}
 ```
 
-#### Test 3: Blocage dans 3 Jours
+**Comment obtenir une date valide pour Swagger** :
+
+### Méthode 1 : Calcul Automatique (Terminal)
+```bash
+# Dans 30 minutes
+date -u +"%Y-%m-%dT%H:%M:%SZ" -d "+30 minutes"
+# Résultat: 2025-10-28T13:16:00Z
+
+# Dans 2 heures
+date -u +"%Y-%m-%dT%H:%M:%SZ" -d "+2 hours"
+# Résultat: 2025-10-28T14:46:00Z
+
+# Dans 1 jour
+date -u +"%Y-%m-%dT%H:%M:%SZ" -d "+1 day"
+# Résultat: 2025-10-29T12:46:00Z
+```
+
+### Méthode 2 : Calcul Manuel
+1. **Prenez l'heure actuelle** : `2025-10-28T12:46:00Z`
+2. **Ajoutez le temps souhaité** :
+   - +30 min → `2025-10-28T13:16:00Z`
+   - +2h → `2025-10-28T14:46:00Z`
+   - +1 jour → `2025-10-29T12:46:00Z`
+   - +1 semaine → `2025-11-04T12:46:00Z`
+
+### Méthode 3 : Dans Swagger UI
+1. Cliquez sur l'endpoint `POST /comptes/{compte}/planifier-blocage`
+2. Cliquez sur "Try it out"
+3. Dans le champ `dateDebut`, entrez une date future
+4. Exécutez la requête
+
+**Format obligatoire** : `YYYY-MM-DDTHH:mm:ssZ` (ISO 8601 avec Z pour UTC)
+
+#### Test 3: Blocage dans 3 Jours (Exemple Swagger)
+Dans Swagger UI, utilisez cette date pour tester :
+
+**Date valide** : `2025-10-31T12:46:00Z` (si on est le 28 octobre 2025)
+
+**Requête complète dans Swagger** :
+```json
+{
+  "dateDebut": "2025-10-31T12:46:00Z",
+  "duree": 1,
+  "unite": "mois",
+  "motif": "Audit annuel"
+}
+```
+
+**Via cURL** :
 ```bash
 DATE_FUTURE=$(date -u +"%Y-%m-%dT%H:%M:%SZ" -d "+3 days")
 
@@ -210,7 +274,22 @@ curl -X POST http://localhost:8000/api/v1/comptes/{UUID_DU_COMPTE}/planifier-blo
   }'
 ```
 
-#### Test 4: Blocage dans 1 Mois
+#### Test 4: Blocage dans 1 Mois (Exemple Swagger)
+Dans Swagger UI, utilisez cette date pour tester :
+
+**Date valide** : `2025-11-28T12:46:00Z` (si on est le 28 octobre 2025)
+
+**Requête complète dans Swagger** :
+```json
+{
+  "dateDebut": "2025-11-28T12:46:00Z",
+  "duree": 15,
+  "unite": "jours",
+  "motif": "Révision réglementaire"
+}
+```
+
+**Via cURL** :
 ```bash
 DATE_FUTURE=$(date -u +"%Y-%m-%dT%H:%M:%SZ" -d "+1 month")
 
