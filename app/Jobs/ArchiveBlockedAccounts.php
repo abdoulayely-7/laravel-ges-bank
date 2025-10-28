@@ -103,7 +103,16 @@ class ArchiveBlockedAccounts implements ShouldQueue
             }
         }
 
-        DB::connection('neon')->table($table)->insert($data);
+        try {
+            DB::connection('neon')->table($table)->insert($data);
+        } catch (\Illuminate\Database\QueryException $e) {
+            // Si la clé existe déjà, on fait un upsert (update or insert)
+            if (str_contains($e->getMessage(), 'duplicate key value')) {
+                Log::warning("Record already exists in {$table}, skipping: " . $data['id'] ?? 'unknown');
+                return;
+            }
+            throw $e;
+        }
     }
 
     /**
