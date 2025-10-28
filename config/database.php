@@ -35,6 +35,21 @@ return [
 
     'connections' => [
 
+        'neon' => [
+            'driver' => 'pgsql',
+            'url' => env('NEON_DATABASE_URL'),
+            'host' => env('NEON_DB_HOST'),
+            'port' => env('NEON_DB_PORT', '5432'),
+            'database' => env('NEON_DB_DATABASE'),
+            'username' => env('NEON_DB_USERNAME'),
+            'password' => env('NEON_DB_PASSWORD'),
+            'charset' => 'utf8',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'search_path' => 'public',
+            'sslmode' => 'require',
+        ],
+
         'sqlite' => [
             'driver' => 'sqlite',
             'url' => env('DATABASE_URL'),

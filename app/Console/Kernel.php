@@ -12,14 +12,11 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
-        // Exécuter les jobs planifiés tous les jours à minuit
-        $schedule->command('app:run-scheduled-jobs')
-            ->daily()
-            ->runInBackground();
+        // Archiver les comptes bloqués tous les jours à 2h du matin
+        $schedule->job(new \App\Jobs\ArchiveBlockedAccounts)->dailyAt('02:00');
 
-        // Alternative : exécuter directement les jobs
-        // $schedule->job(new \App\Jobs\UnblockExpiredAccounts)->daily();
-        // $schedule->job(new \App\Jobs\ArchiveExpiredBlockedAccounts)->daily();
+        // Désarchiver les comptes expirés toutes les heures
+        $schedule->job(new \App\Jobs\UnarchiveExpiredBlockedAccounts)->hourly();
     }
 
     /**
