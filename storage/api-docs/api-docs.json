@@ -1246,14 +1246,14 @@
                 }
             }
         },
-        "/comptes/{compte}/bloquer": {
+        "/comptes/{compte}/planifier-blocage": {
             "post": {
                 "tags": [
-                    "Comptes"
+                    "Blocage de Comptes"
                 ],
-                "summary": "Bloquer un compte épargne",
-                "description": "Bloque un compte épargne actif pour une durée déterminée",
-                "operationId": "bloquerCompte",
+                "summary": "Planifier le blocage d'un compte épargne",
+                "description": "Planifie le blocage futur d'un compte épargne actif à une date et durée déterminées",
+                "operationId": "planifierBlocageCompte",
                 "parameters": [
                     {
                         "name": "compte",
@@ -1272,26 +1272,38 @@
                         "application/json": {
                             "schema": {
                                 "required": [
-                                    "motif",
+                                    "dateDebut",
                                     "duree",
-                                    "unite"
+                                    "unite",
+                                    "motif"
                                 ],
                                 "properties": {
-                                    "motif": {
+                                    "dateDebut": {
+                                        "description": "Date et heure de début du blocage",
                                         "type": "string",
-                                        "example": "Activité suspecte détectée"
+                                        "format": "date-time",
+                                        "example": "2025-10-28T14:30:00Z"
                                     },
                                     "duree": {
+                                        "description": "Durée du blocage",
                                         "type": "integer",
-                                        "example": 30
+                                        "minimum": 1,
+                                        "example": 7
                                     },
                                     "unite": {
+                                        "description": "Unité de temps pour la durée",
                                         "type": "string",
                                         "enum": [
+                                            "minutes",
+                                            "heures",
                                             "jours",
                                             "mois"
                                         ],
-                                        "example": "mois"
+                                        "example": "jours"
+                                    },
+                                    "motif": {
+                                        "type": "string",
+                                        "example": "Maintenance programmée du système bancaire"
                                     }
                                 },
                                 "type": "object"
@@ -1301,7 +1313,7 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Compte bloqué avec succès",
+                        "description": "Blocage planifié avec succès",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -1312,10 +1324,31 @@
                                         },
                                         "message": {
                                             "type": "string",
-                                            "example": "Compte bloqué avec succès"
+                                            "example": "Blocage planifié avec succès"
                                         },
                                         "data": {
-                                            "$ref": "#/components/schemas/BlocageResource"
+                                            "properties": {
+                                                "compteId": {
+                                                    "type": "string",
+                                                    "format": "uuid",
+                                                    "example": "550e8400-e29b-41d4-a716-446655440000"
+                                                },
+                                                "dateDebutBlocage": {
+                                                    "type": "string",
+                                                    "format": "date-time",
+                                                    "example": "2025-10-28T14:30:00Z"
+                                                },
+                                                "dateFinBlocagePrevue": {
+                                                    "type": "string",
+                                                    "format": "date-time",
+                                                    "example": "2025-11-04T14:30:00Z"
+                                                },
+                                                "motif": {
+                                                    "type": "string",
+                                                    "example": "Maintenance programmée du système bancaire"
+                                                }
+                                            },
+                                            "type": "object"
                                         }
                                     },
                                     "type": "object"
@@ -1324,7 +1357,7 @@
                         }
                     },
                     "400": {
-                        "description": "Données invalides ou compte ne peut pas être bloqué",
+                        "description": "Données invalides ou compte ne peut pas être planifié pour blocage",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -1335,7 +1368,7 @@
                                         },
                                         "message": {
                                             "type": "string",
-                                            "example": "Seuls les comptes épargne actifs peuvent être bloqués"
+                                            "example": "Seuls les comptes épargne actifs peuvent être planifiés pour blocage"
                                         },
                                         "errors": {
                                             "type": "object"
@@ -1753,6 +1786,10 @@
         {
             "name": "Comptes",
             "description": "Comptes"
+        },
+        {
+            "name": "Blocage de Comptes",
+            "description": "Blocage de Comptes"
         }
     ]
 }
