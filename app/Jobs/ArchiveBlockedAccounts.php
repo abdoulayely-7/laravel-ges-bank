@@ -184,77 +184,63 @@ class ArchiveBlockedAccounts implements ShouldQueue
     private function getCreateTableSQL(string $table): ?string
     {
         try {
-            // Récupérer la structure de la table depuis la base principale
-            $columns = DB::select("SELECT column_name, data_type, is_nullable, column_default
-                                  FROM information_schema.columns
-                                  WHERE table_name = ? AND table_schema = 'public'
-                                  ORDER BY ordinal_position", [$table]);
+            // Définir les structures de tables manuellement pour éviter les erreurs
+            $tableSchemas = [
+                'users' => 'CREATE TABLE "users" (
+                    "id" UUID PRIMARY KEY,
+                    "name" VARCHAR(255) NOT NULL,
+                    "email" VARCHAR(255) NOT NULL,
+                    "email_verified_at" TIMESTAMP NULL,
+                    "password" VARCHAR(255) NOT NULL,
+                    "remember_token" VARCHAR(100) NULL,
+                    "created_at" TIMESTAMP NULL,
+                    "updated_at" TIMESTAMP NULL
+                )',
 
-            if (empty($columns)) {
-                return null;
-            }
+                'clients' => 'CREATE TABLE "clients" (
+                    "id" UUID PRIMARY KEY,
+                    "user_id" UUID NOT NULL,
+                    "telephone" VARCHAR(255) NULL,
+                    "adresse" TEXT NULL,
+                    "nci" VARCHAR(255) NULL,
+                    "created_at" TIMESTAMP NULL,
+                    "updated_at" TIMESTAMP NULL,
+                    FOREIGN KEY ("user_id") REFERENCES "users"("id")
+                )',
 
-            $sql = "CREATE TABLE \"{$table}\" (";
+                'comptes' => 'CREATE TABLE "comptes" (
+                    "id" UUID PRIMARY KEY,
+                    "numero_compte" VARCHAR(255) NOT NULL,
+                    "type" VARCHAR(255) NOT NULL,
+                    "devise" VARCHAR(255) NOT NULL,
+                    "date_creation" TIMESTAMP NOT NULL,
+                    "client_id" UUID NOT NULL,
+                    "statut" VARCHAR(255) NOT NULL,
+                    "motif_blocage" VARCHAR(255) NULL,
+                    "date_blocage" TIMESTAMP NULL,
+                    "date_deblocage_prevue" TIMESTAMP NULL,
+                    "date_deblocage" TIMESTAMP NULL,
+                    "deleted_at" TIMESTAMP NULL,
+                    "created_at" TIMESTAMP NULL,
+                    "updated_at" TIMESTAMP NULL,
+                    FOREIGN KEY ("client_id") REFERENCES "clients"("id")
+                )',
 
-            $columnDefs = [];
-            foreach ($columns as $column) {
-                $colDef = "\"{$column->column_name}\" ";
+                'transactions' => 'CREATE TABLE "transactions" (
+                    "id" UUID PRIMARY KEY,
+                    "compte_id" UUID NOT NULL,
+                    "type" VARCHAR(255) NOT NULL,
+                    "montant" DECIMAL(15,2) NOT NULL,
+                    "solde_apres" DECIMAL(15,2) NOT NULL,
+                    "description" TEXT NULL,
+                    "reference_externe" VARCHAR(255) NULL,
+                    "created_at" TIMESTAMP NULL,
+                    "updated_at" TIMESTAMP NULL,
+                    FOREIGN KEY ("compte_id") REFERENCES "comptes"("id")
+                )'
+            ];
 
-                // Mapper les types PostgreSQL
-                switch ($column->data_type) {
-                    case 'character varying':
-                        $colDef .= 'VARCHAR(255)';
-                        break;
-                    case 'uuid':
-                        $colDef .= 'UUID';
-                        break;
-                    case 'timestamp without time zone':
-                        $colDef .= 'TIMESTAMP';
-                        break;
-                    case 'integer':
-                        $colDef .= 'INTEGER';
-                        break;
-                    case 'numeric':
-                        $colDef .= 'DECIMAL';
-                        break;
-                    case 'boolean':
-                        $colDef .= 'BOOLEAN';
-                        break;
-                    case 'text':
-                        $colDef .= 'TEXT';
-                        break;
-                    default:
-                        $colDef .= 'VARCHAR(255)';
-                }
-
-                if ($column->is_nullable === 'NO') {
-                    $colDef .= ' NOT NULL';
-                }
-
-                if ($column->column_default !== null) {
-                    $colDef .= ' DEFAULT ' . $column->column_default;
-                }
-
-                $columnDefs[] = $colDef;
-            }
-
-            // Ajouter les clés primaires pour les tables principales
-            if ($table === 'users') {
-                $columnDefs[] = 'PRIMARY KEY ("id")';
-            } elseif ($table === 'clients') {
-                $columnDefs[] = 'PRIMARY KEY ("id")';
-                $columnDefs[] = 'FOREIGN KEY ("user_id") REFERENCES "users"("id")';
-            } elseif ($table === 'comptes') {
-                $columnDefs[] = 'PRIMARY KEY ("id")';
-                $columnDefs[] = 'FOREIGN KEY ("client_id") REFERENCES "clients"("id")';
-            } elseif ($table === 'transactions') {
-                $columnDefs[] = 'PRIMARY KEY ("id")';
-                $columnDefs[] = 'FOREIGN KEY ("compte_id") REFERENCES "comptes"("id")';
-            }
-
-            $sql .= implode(', ', $columnDefs) . ')';
-
-            return $sql;
+            return $tableSchemas[$table] ?? null;
 
         } catch (\Exception $e) {
             Log::error("Failed to create table {$table}: " . $e->getMessage());
