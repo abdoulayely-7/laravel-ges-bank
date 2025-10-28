@@ -20,7 +20,7 @@ class CompteFactory extends Factory
     public function definition(): array
     {
         $types = ['epargne', 'courant', 'cheque'];
-        $statuts = ['actif', 'bloquer'];
+        $statuts = ['actif', 'bloque'];
 
         return [
             'id' => Str::uuid(),
