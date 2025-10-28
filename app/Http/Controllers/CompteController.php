@@ -486,10 +486,10 @@ class CompteController extends Controller
     /**
      * @OA\Post(
      *     path="/comptes/{compte}/bloquer",
-     *     summary="Bloquer un compte épargne",
-     *     description="Bloque un compte épargne actif pour une durée déterminée",
+     *     summary="Bloquer un compte épargne immédiatement",
+     *     description="Bloque immédiatement un compte épargne actif pour une durée déterminée",
      *     operationId="bloquerCompte",
-     *     tags={"Comptes"},
+     *     tags={"Blocage de Comptes"},
      *     @OA\Parameter(
      *         name="compte",
      *         in="path",
@@ -502,8 +502,8 @@ class CompteController extends Controller
      *         @OA\JsonContent(
      *             required={"motif", "duree", "unite"},
      *             @OA\Property(property="motif", type="string", example="Activité suspecte détectée"),
-     *             @OA\Property(property="duree", type="integer", example=30),
-     *             @OA\Property(property="unite", type="string", enum={"jours", "mois"}, example="mois")
+     *             @OA\Property(property="duree", type="integer", example=30, minimum=1),
+     *             @OA\Property(property="unite", type="string", enum={"jours", "mois"}, example="jours")
      *         )
      *     ),
      *     @OA\Response(
@@ -542,10 +542,81 @@ class CompteController extends Controller
      *     )
      * )
      */
+
+    /**
+     * @OA\Post(
+     *     path="/comptes/{compte}/planifier-blocage",
+     *     summary="Planifier le blocage d'un compte épargne",
+     *     description="Planifie le blocage futur d'un compte épargne actif à une date et durée déterminées",
+     *     operationId="planifierBlocageCompte",
+     *     tags={"Blocage de Comptes"},
+     *     @OA\Parameter(
+     *         name="compte",
+     *         in="path",
+     *         description="ID UUID du compte à bloquer",
+     *         required=true,
+     *         @OA\Schema(type="string", format="uuid")
+     *     ),
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"dateDebut", "duree", "unite", "motif"},
+     *             @OA\Property(property="dateDebut", type="string", format="date-time", example="2025-10-28T14:30:00Z", description="Date et heure de début du blocage"),
+     *             @OA\Property(property="duree", type="integer", example=7, minimum=1, description="Durée du blocage"),
+     *             @OA\Property(property="unite", type="string", enum={"minutes", "heures", "jours", "mois"}, example="jours", description="Unité de temps pour la durée"),
+     *             @OA\Property(property="motif", type="string", example="Maintenance programmée du système bancaire")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Blocage planifié avec succès",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Blocage planifié avec succès"),
+     *             @OA\Property(property="data", type="object",
+     *                 @OA\Property(property="compteId", type="string", format="uuid", example="550e8400-e29b-41d4-a716-446655440000"),
+     *                 @OA\Property(property="dateDebutBlocage", type="string", format="date-time", example="2025-10-28T14:30:00Z"),
+     *                 @OA\Property(property="dateFinBlocagePrevue", type="string", format="date-time", example="2025-11-04T14:30:00Z"),
+     *                 @OA\Property(property="motif", type="string", example="Maintenance programmée du système bancaire")
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=400,
+     *         description="Données invalides ou compte ne peut pas être planifié pour blocage",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Seuls les comptes épargne actifs peuvent être planifiés pour blocage"),
+     *             @OA\Property(property="errors", type="object")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Compte non trouvé",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Le Compte avec l'ID spécifié n'existe pas")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=500,
+     *         description="Erreur serveur",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Erreur serveur")
+     *         )
+     *     )
+     * )
+     */
     public function bloquer(BlocageCompteRequest $request, Compte $compte)
     {
         try {
             $validatedData = $request->validated();
+
+            // Vérifier que c'est un compte épargne actif
+            if ($compte->type !== 'epargne' || $compte->statut !== 'actif') {
+                return $this->error('Seuls les comptes épargne actifs peuvent être bloqués', 400);
+            }
 
             // Calculer la date de fin de blocage
             $dateDebut = now();
@@ -562,14 +633,66 @@ class CompteController extends Controller
             $compte->update([
                 'statut' => 'bloque',
                 'motif_blocage' => $validatedData['motif'],
-                'date_blocage' => $dateDebut,
-                'date_deblocage_prevue' => $dateFin,
+                'date_debut_blocage' => $dateDebut,
+                'date_fin_blocage_prevue' => $dateFin,
             ]);
 
             return $this->success(
                 new BlocageResource($compte),
                 'Compte bloqué avec succès'
             );
+        } catch (\Throwable $e) {
+            return $this->error("Erreur serveur : " . $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Planifier le blocage d'un compte
+     */
+    public function planifierBlocage(Request $request, Compte $compte)
+    {
+        try {
+            $validatedData = $request->validate([
+                'dateDebut' => 'required|date|after:now',
+                'duree' => 'required|integer|min:1',
+                'unite' => 'required|in:minutes,heures,jours,mois',
+                'motif' => 'required|string|max:255'
+            ]);
+
+            // Vérifier que c'est un compte épargne actif
+            if ($compte->type !== 'epargne' || $compte->statut !== 'actif') {
+                return $this->error('Seuls les comptes épargne actifs peuvent être planifiés pour blocage', 400);
+            }
+
+            // Calculer la date de fin de blocage
+            $dateDebut = \Carbon\Carbon::parse($validatedData['dateDebut']);
+            $duree = $validatedData['duree'];
+            $unite = $validatedData['unite'];
+
+            $dateFin = match ($unite) {
+                'minutes' => $dateDebut->copy()->addMinutes($duree),
+                'heures' => $dateDebut->copy()->addHours($duree),
+                'jours' => $dateDebut->copy()->addDays($duree),
+                'mois' => $dateDebut->copy()->addMonths($duree),
+            };
+
+            // Planifier le blocage
+            $compte->update([
+                'date_debut_blocage_planifiee' => $dateDebut,
+                'duree_blocage_valeur' => $duree,
+                'duree_blocage_unite' => $unite,
+                'motif_blocage' => $validatedData['motif'],
+            ]);
+
+            return $this->success([
+                'compteId' => $compte->id,
+                'dateDebutBlocage' => $dateDebut->toISOString(),
+                'dateFinBlocagePrevue' => $dateFin->toISOString(),
+                'motif' => $validatedData['motif'],
+                'duree' => $duree,
+                'unite' => $unite
+            ], 'Blocage planifié avec succès');
+
         } catch (\Throwable $e) {
             return $this->error("Erreur serveur : " . $e->getMessage(), 500);
         }
