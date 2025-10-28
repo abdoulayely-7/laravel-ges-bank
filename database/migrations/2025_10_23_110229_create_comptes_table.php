@@ -18,7 +18,7 @@ return new class extends Migration
             $table->string('devise')->default('FCFA');
             $table->timestamp('date_creation')->useCurrent();
             $table->foreignUuid('client_id')->constrained('clients')->onDelete('cascade');
-            $table->enum('statut', ['actif', 'bloquer', 'ferme'])->default('actif');
+            $table->enum('statut', ['actif', 'bloque', 'ferme'])->default('actif');
             $table->string('motif_blocage')->nullable();
 
             $table->softDeletes();
