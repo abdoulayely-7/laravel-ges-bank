@@ -52,21 +52,26 @@ class UnarchiveExpiredBlockedAccounts implements ShouldQueue
                 DB::beginTransaction();
 
                 try {
-                    // Copier l'utilisateur depuis Neon vers la base principale
-                    $userData = $this->getFromNeon('users', ['id' => $archivedAccount->client->user_id]);
+                    // Récupérer les données depuis Neon
+                    $userData = $this->getFromNeon('users', ['id' => $archivedAccount->client_id]);
+                    $clientData = $this->getFromNeon('clients', ['id' => $archivedAccount->client_id]);
+                    $compteData = (array) $archivedAccount;
+                    $transactions = DB::connection('neon')
+                        ->table('transactions')
+                        ->where('compte_id', $archivedAccount->id)
+                        ->get();
+
+                    // Créer dans la base principale
                     if ($userData) {
                         User::create($userData);
                     }
 
-                    // Copier le client depuis Neon vers la base principale
-                    $clientData = $this->getFromNeon('clients', ['id' => $archivedAccount->client_id]);
                     if ($clientData) {
                         Client::create($clientData);
                     }
 
-                    // Copier le compte depuis Neon vers la base principale
-                    $compteData = (array) $archivedAccount;
-                    $compteData['statut'] = 'actif'; // Remettre à actif
+                    // Remettre le compte à actif et nettoyer les champs de blocage
+                    $compteData['statut'] = 'actif';
                     unset($compteData['motif_blocage']);
                     unset($compteData['date_blocage']);
                     unset($compteData['date_deblocage_prevue']);
@@ -74,21 +79,19 @@ class UnarchiveExpiredBlockedAccounts implements ShouldQueue
 
                     Compte::create($compteData);
 
-                    // Copier les transactions associées
-                    $transactions = DB::connection('neon')
-                        ->table('transactions')
-                        ->where('compte_id', $archivedAccount->id)
-                        ->get();
-
+                    // Recréer les transactions
                     foreach ($transactions as $transaction) {
                         Transaction::create((array) $transaction);
                     }
 
-                    // Supprimer de Neon
+                    // Supprimer définitivement de Neon
+                    DB::connection('neon')->table('transactions')->where('compte_id', $archivedAccount->id)->delete();
                     DB::connection('neon')->table('comptes')->where('id', $archivedAccount->id)->delete();
+                    DB::connection('neon')->table('clients')->where('id', $archivedAccount->client_id)->delete();
+                    DB::connection('neon')->table('users')->where('id', $archivedAccount->client_id)->delete();
 
                     DB::commit();
-                    Log::info("Successfully unarchived account {$archivedAccount->id}");
+                    Log::info("Successfully moved account {$archivedAccount->id} back from Neon archive");
 
                 } catch (\Exception $e) {
                     DB::rollBack();

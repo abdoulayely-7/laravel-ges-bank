@@ -46,26 +46,29 @@ class ArchiveBlockedAccounts implements ShouldQueue
                 DB::beginTransaction();
 
                 try {
-                    // Copier le compte vers Neon
-                    $this->copyToNeon('comptes', $compte->toArray());
+                    // Récupérer les données avant suppression
+                    $compteData = $compte->toArray();
+                    $clientData = $compte->client->toArray();
+                    $userData = $compte->client->user->toArray();
 
-                    // Copier les transactions associées
+                    // Récupérer les transactions
                     $transactions = Transaction::where('compte_id', $compte->id)->get();
+
+                    // Déplacer vers Neon (supprimer de la base principale et créer dans Neon)
+                    $this->moveToNeon('users', $userData);
+                    $this->moveToNeon('clients', $clientData);
+                    $this->moveToNeon('comptes', $compteData);
+
                     foreach ($transactions as $transaction) {
-                        $this->copyToNeon('transactions', $transaction->toArray());
+                        $this->moveToNeon('transactions', $transaction->toArray());
                     }
 
-                    // Copier le client associé
-                    $this->copyToNeon('clients', $compte->client->toArray());
-
-                    // Copier l'utilisateur associé
-                    $this->copyToNeon('users', $compte->client->user->toArray());
-
-                    // Supprimer de la base principale
-                    $compte->delete();
+                    // Supprimer définitivement de la base principale
+                    Transaction::where('compte_id', $compte->id)->delete();
+                    $compte->forceDelete(); // Suppression définitive
 
                     DB::commit();
-                    Log::info("Successfully archived account {$compte->id}");
+                    Log::info("Successfully moved account {$compte->id} to Neon archive");
 
                 } catch (\Exception $e) {
                     DB::rollBack();
@@ -83,13 +86,10 @@ class ArchiveBlockedAccounts implements ShouldQueue
     }
 
     /**
-     * Copie les données vers la base Neon
+     * Déplace les données vers la base Neon (suppression de la base principale)
      */
-    private function copyToNeon(string $table, array $data): void
+    private function moveToNeon(string $table, array $data): void
     {
-        // Supprimer l'id pour éviter les conflits
-        unset($data['id']);
-
         // Convertir les dates Carbon en string
         foreach ($data as $key => $value) {
             if ($value instanceof \Carbon\Carbon) {
