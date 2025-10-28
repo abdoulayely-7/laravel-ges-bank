@@ -32,10 +32,11 @@ class ProcessScheduledAccountBlocks implements ShouldQueue
 
         try {
             // Récupérer tous les comptes avec un blocage planifié arrivé à échéance
+            // Ajouter une tolérance de 1 minute pour compenser les décalages horaires
             $accountsToBlock = Compte::where('statut', 'actif')
                 ->where('type', 'epargne') // Uniquement les comptes épargne
                 ->whereNotNull('date_debut_blocage_planifiee')
-                ->where('date_debut_blocage_planifiee', '<=', now())
+                ->where('date_debut_blocage_planifiee', '<=', now()->addMinute()) // Tolérance de 1 minute
                 ->get();
 
             if ($accountsToBlock->isEmpty()) {
