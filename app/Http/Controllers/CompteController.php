@@ -693,6 +693,22 @@ class CompteController extends Controller
                 'unite' => $unite
             ], 'Blocage planifié avec succès');
 
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // Gestion spécifique des erreurs de validation
+            $errors = $e->errors();
+            $messages = [];
+
+            foreach ($errors as $field => $fieldErrors) {
+                foreach ($fieldErrors as $error) {
+                    if ($field === 'dateDebut' && str_contains($error, 'must be a date after now')) {
+                        $messages[] = 'La date de début doit être dans le futur';
+                    } else {
+                        $messages[] = $error;
+                    }
+                }
+            }
+
+            return $this->error(implode(', ', $messages), 400);
         } catch (\Throwable $e) {
             return $this->error("Erreur serveur : " . $e->getMessage(), 500);
         }
