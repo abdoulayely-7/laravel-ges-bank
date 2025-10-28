@@ -93,6 +93,9 @@ class ArchiveBlockedAccounts implements ShouldQueue
         // Créer la table si elle n'existe pas
         $this->createTableIfNotExists($table);
 
+        // Nettoyer les données selon la table
+        $data = $this->cleanDataForTable($table, $data);
+
         // Convertir les dates Carbon en string
         foreach ($data as $key => $value) {
             if ($value instanceof \Carbon\Carbon) {
@@ -101,6 +104,57 @@ class ArchiveBlockedAccounts implements ShouldQueue
         }
 
         DB::connection('neon')->table($table)->insert($data);
+    }
+
+    /**
+     * Nettoie les données selon la table (gère les champs obligatoires)
+     */
+    private function cleanDataForTable(string $table, array $data): array
+    {
+        switch ($table) {
+            case 'users':
+                // Pour les users, s'assurer que password n'est pas null
+                if (!isset($data['password']) || $data['password'] === null) {
+                    $data['password'] = bcrypt('archived_' . time()); // Mot de passe temporaire
+                }
+                // Supprimer les champs timestamps s'ils sont null
+                if (!isset($data['email_verified_at']) || $data['email_verified_at'] === null) {
+                    unset($data['email_verified_at']);
+                }
+                break;
+
+            case 'clients':
+                // Supprimer les champs qui peuvent être null
+                $nullableFields = ['telephone', 'adresse', 'nci'];
+                foreach ($nullableFields as $field) {
+                    if (!isset($data[$field]) || $data[$field] === null) {
+                        unset($data[$field]);
+                    }
+                }
+                break;
+
+            case 'comptes':
+                // Supprimer les champs qui peuvent être null
+                $nullableFields = ['motif_blocage', 'date_blocage', 'date_deblocage_prevue', 'date_deblocage'];
+                foreach ($nullableFields as $field) {
+                    if (!isset($data[$field]) || $data[$field] === null) {
+                        unset($data[$field]);
+                    }
+                }
+                break;
+
+            case 'transactions':
+                // Supprimer les champs qui peuvent être null
+                $nullableFields = ['description', 'reference_externe'];
+                foreach ($nullableFields as $field) {
+                    if (!isset($data[$field]) || $data[$field] === null) {
+                        unset($data[$field]);
+                    }
+                }
+                break;
+        }
+
+        return $data;
     }
 
     /**
