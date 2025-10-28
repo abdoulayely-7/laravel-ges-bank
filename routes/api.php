@@ -66,4 +66,8 @@ Route::prefix('v1')->group(function () {
     Route::post('comptes/{compte}/bloquer', [CompteController::class, 'bloquer']);
     Route::post('comptes/{compte}/planifier-blocage', [CompteController::class, 'planifierBlocage']);
     Route::post('comptes/{compte}/debloquer', [CompteController::class, 'debloquer']);
+    Route::post('trigger-block-job', function () {
+        \App\Jobs\ProcessScheduledAccountBlocks::dispatch();
+        return response()->json(['message' => 'Block job triggered']);
+    });
 });
