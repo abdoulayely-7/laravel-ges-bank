@@ -6,12 +6,16 @@ use App\Exceptions\ApiException;
 use App\Exceptions\CompteNotFoundException;
 use App\Exceptions\NotFoundException;
 use App\Exceptions\ValidationException;
+use App\Http\Requests\BlocageCompteRequest;
 use App\Http\Requests\CompteIndexRequest;
+use App\Http\Requests\DeblocageCompteRequest;
 use App\Http\Requests\StoreCompteRequest;
 use App\Http\Requests\UpdateClientRequest;
+use App\Http\Resources\BlocageResource;
 use App\Http\Resources\CompteDeleteResource;
 use App\Http\Resources\CompteDetailResource;
 use App\Http\Resources\CompteResource;
+use App\Http\Resources\DeblocageResource;
 use App\Models\Client;
 use App\Models\Compte;
 use App\Services\CompteService;
@@ -473,6 +477,178 @@ class CompteController extends Controller
             return $this->success(
                 new CompteResource($compte->load('client.user')),
                 'Client mis à jour avec succès'
+            );
+        } catch (\Throwable $e) {
+            return $this->error("Erreur serveur : " . $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * @OA\Post(
+     *     path="/comptes/{compte}/bloquer",
+     *     summary="Bloquer un compte épargne",
+     *     description="Bloque un compte épargne actif pour une durée déterminée",
+     *     operationId="bloquerCompte",
+     *     tags={"Comptes"},
+     *     @OA\Parameter(
+     *         name="compte",
+     *         in="path",
+     *         description="ID UUID du compte à bloquer",
+     *         required=true,
+     *         @OA\Schema(type="string", format="uuid")
+     *     ),
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"motif", "duree", "unite"},
+     *             @OA\Property(property="motif", type="string", example="Activité suspecte détectée"),
+     *             @OA\Property(property="duree", type="integer", example=30),
+     *             @OA\Property(property="unite", type="string", enum={"jours", "mois"}, example="mois")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Compte bloqué avec succès",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Compte bloqué avec succès"),
+     *             @OA\Property(property="data", ref="#/components/schemas/BlocageResource")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=400,
+     *         description="Données invalides ou compte ne peut pas être bloqué",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Seuls les comptes épargne actifs peuvent être bloqués"),
+     *             @OA\Property(property="errors", type="object")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Compte non trouvé",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Le Compte avec l'ID spécifié n'existe pas")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=500,
+     *         description="Erreur serveur",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Erreur serveur")
+     *         )
+     *     )
+     * )
+     */
+    public function bloquer(BlocageCompteRequest $request, Compte $compte)
+    {
+        try {
+            $validatedData = $request->validated();
+
+            // Calculer la date de fin de blocage
+            $dateDebut = now();
+            $duree = $validatedData['duree'];
+            $unite = $validatedData['unite'];
+
+            if ($unite === 'mois') {
+                $dateFin = $dateDebut->copy()->addMonths($duree);
+            } else {
+                $dateFin = $dateDebut->copy()->addDays($duree);
+            }
+
+            // Mettre à jour le compte
+            $compte->update([
+                'statut' => 'bloque',
+                'motif_blocage' => $validatedData['motif'],
+                'date_blocage' => $dateDebut,
+                'date_deblocage_prevue' => $dateFin,
+            ]);
+
+            return $this->success(
+                new BlocageResource($compte),
+                'Compte bloqué avec succès'
+            );
+        } catch (\Throwable $e) {
+            return $this->error("Erreur serveur : " . $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * @OA\Post(
+     *     path="/comptes/{compte}/debloquer",
+     *     summary="Débloquer un compte",
+     *     description="Débloque un compte précédemment bloqué",
+     *     operationId="debloquerCompte",
+     *     tags={"Comptes"},
+     *     @OA\Parameter(
+     *         name="compte",
+     *         in="path",
+     *         description="ID UUID du compte à débloquer",
+     *         required=true,
+     *         @OA\Schema(type="string", format="uuid")
+     *     ),
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"motif"},
+     *             @OA\Property(property="motif", type="string", example="Vérification complétée")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Compte débloqué avec succès",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Compte débloqué avec succès"),
+     *             @OA\Property(property="data", ref="#/components/schemas/DeblocageResource")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=400,
+     *         description="Données invalides ou compte ne peut pas être débloqué",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Le compte doit être bloqué pour pouvoir être débloqué"),
+     *             @OA\Property(property="errors", type="object")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Compte non trouvé",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Le Compte avec l'ID spécifié n'existe pas")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=500,
+     *         description="Erreur serveur",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Erreur serveur")
+     *         )
+     *     )
+     * )
+     */
+    public function debloquer(DeblocageCompteRequest $request, Compte $compte)
+    {
+        try {
+            $validatedData = $request->validated();
+
+            // Mettre à jour le compte
+            $compte->update([
+                'statut' => 'actif',
+                'motif_blocage' => null,
+                'date_blocage' => null,
+                'date_deblocage_prevue' => null,
+                'date_deblocage' => now(),
+            ]);
+
+            return $this->success(
+                new DeblocageResource($compte),
+                'Compte débloqué avec succès'
             );
         } catch (\Throwable $e) {
             return $this->error("Erreur serveur : " . $e->getMessage(), 500);
