@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Jobs\ArchiveBlockedAccounts;
+use App\Jobs\ProcessScheduledAccountBlocks;
 use App\Jobs\UnarchiveExpiredBlockedAccounts;
 use Illuminate\Console\Command;
 
@@ -13,14 +14,14 @@ class RunArchiveJobs extends Command
      *
      * @var string
      */
-    protected $signature = 'archive:run {--type= : Type of job to run (archive|unarchive|all)}';
+    protected $signature = 'archive:run {--type= : Type of job to run (block|archive|unarchive|all)}';
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'Run archive jobs for blocked accounts';
+    protected $description = 'Run blocking and archive jobs for accounts';
 
     /**
      * Execute the console command.
@@ -32,6 +33,9 @@ class RunArchiveJobs extends Command
         $this->info("Running archive jobs (type: {$type})");
 
         switch ($type) {
+            case 'block':
+                $this->runBlockJob();
+                break;
             case 'archive':
                 $this->runArchiveJob();
                 break;
@@ -40,6 +44,7 @@ class RunArchiveJobs extends Command
                 break;
             case 'all':
             default:
+                $this->runBlockJob();
                 $this->runArchiveJob();
                 $this->runUnarchiveJob();
                 break;
@@ -56,6 +61,16 @@ class RunArchiveJobs extends Command
         $this->info('Dispatching ArchiveBlockedAccounts job...');
         ArchiveBlockedAccounts::dispatch();
         $this->info('ArchiveBlockedAccounts job dispatched successfully');
+    }
+
+    /**
+     * Run the block job
+     */
+    private function runBlockJob()
+    {
+        $this->info('Dispatching ProcessScheduledAccountBlocks job...');
+        ProcessScheduledAccountBlocks::dispatch();
+        $this->info('ProcessScheduledAccountBlocks job dispatched successfully');
     }
 
     /**

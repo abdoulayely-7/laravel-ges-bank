@@ -12,6 +12,9 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
+        // Traiter les blocages planifiés toutes les minutes
+        $schedule->job(new \App\Jobs\ProcessScheduledAccountBlocks)->everyMinute();
+
         // Archiver les comptes bloqués tous les jours à 2h du matin
         $schedule->job(new \App\Jobs\ArchiveBlockedAccounts)->dailyAt('02:00');
 
