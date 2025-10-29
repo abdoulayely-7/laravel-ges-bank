@@ -62,26 +62,6 @@ class Compte extends Model
         return (float) ($totalDepot - $totalRetrait);
     }
 
-    // generer numero de compte
-    protected function numeroCompte(): Attribute
-    {
-        return Attribute::make(
-            get: fn($value) => $value,
-            set: function ($value) {
-                if ($value) {
-                    // si un numéro est fourni manuellement, on le garde
-                    return $value;
-                }
-
-                // Sinon, générer automatiquement
-                $lastCompte = self::latest('created_at')->first();
-                $lastNumber = $lastCompte ? intval(substr($lastCompte->numero_compte, 1)) : 0;
-                $newNumber = str_pad($lastNumber + 1, 5, '0', STR_PAD_LEFT);
-
-                return 'C' . $newNumber;
-            }
-        );
-    }
 
 
     /**

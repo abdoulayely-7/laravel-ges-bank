@@ -3,25 +3,20 @@
 namespace App\Http\Controllers;
 
 use App\Exceptions\ApiException;
-use App\Exceptions\CompteNotFoundException;
 use App\Exceptions\NotFoundException;
-use App\Exceptions\ValidationException;
-use App\Http\Requests\BlocageCompteRequest;
 use App\Http\Requests\CompteIndexRequest;
-use App\Http\Requests\DeblocageCompteRequest;
 use App\Http\Requests\StoreCompteRequest;
 use App\Http\Requests\UpdateClientRequest;
-use App\Http\Resources\BlocageResource;
 use App\Http\Resources\CompteDeleteResource;
 use App\Http\Resources\CompteDetailResource;
 use App\Http\Resources\CompteResource;
-use App\Http\Resources\DeblocageResource;
-use App\Models\Client;
 use App\Models\Compte;
 use App\Services\CompteService;
 use App\Traits\ApiResponseTrait;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Validation\ValidationException;
 
 /**
  * @OA\Info(
@@ -74,16 +69,16 @@ class CompteController extends Controller
      *     @OA\Parameter(
      *         name="type",
      *         in="query",
-     *         description="Type de compte",
+     *         description="Type de compte (par défaut : épargne et chèque uniquement)",
      *         required=false,
      *         @OA\Schema(type="string", enum={"epargne", "courant", "cheque"})
      *     ),
      *     @OA\Parameter(
      *         name="statut",
      *         in="query",
-     *         description="Statut du compte",
+     *         description="Statut du compte (par défaut : actif uniquement)",
      *         required=false,
-     *         @OA\Schema(type="string", enum={"actif", "bloque"})
+     *         @OA\Schema(type="string", enum={"actif", "bloque", "ferme"})
      *     ),
      *     @OA\Parameter(
      *         name="search",
@@ -105,13 +100,6 @@ class CompteController extends Controller
      *         description="Ordre de tri",
      *         required=false,
      *         @OA\Schema(type="string", enum={"asc", "desc"}, default="desc")
-     *     ),
-     *     @OA\Parameter(
-     *         name="actifs_epargne_cheque",
-     *         in="query",
-     *         description="Filtrer uniquement les comptes actifs de type épargne ou chèque",
-     *         required=false,
-     *         @OA\Schema(type="string", enum={"true", "false"}, default="false")
      *     ),
      *     @OA\Response(
      *         response=200,
@@ -485,68 +473,6 @@ class CompteController extends Controller
 
     /**
      * @OA\Post(
-     *     path="/comptes/{compte}/bloquer",
-     *     summary="Bloquer un compte épargne immédiatement",
-     *     description="Bloque immédiatement un compte épargne actif pour une durée déterminée",
-     *     operationId="bloquerCompte",
-     *     tags={"Comptes"},
-     *     @OA\Parameter(
-     *         name="compte",
-     *         in="path",
-     *         description="ID UUID du compte à bloquer",
-     *         required=true,
-     *         @OA\Schema(type="string", format="uuid")
-     *     ),
-     *     @OA\RequestBody(
-     *         required=true,
-     *         @OA\JsonContent(
-     *             required={"motif", "duree", "unite"},
-     *             @OA\Property(property="motif", type="string", example="Activité suspecte détectée"),
-     *             @OA\Property(property="duree", type="integer", example=30, minimum=1),
-     *             @OA\Property(property="unite", type="string", enum={"jours", "mois"}, example="jours")
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=200,
-     *         description="Compte bloqué avec succès",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="success", type="boolean", example=true),
-     *             @OA\Property(property="message", type="string", example="Compte bloqué avec succès"),
-     *             @OA\Property(property="data", ref="#/components/schemas/BlocageResource")
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=400,
-     *         description="Données invalides ou compte ne peut pas être bloqué",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="success", type="boolean", example=false),
-     *             @OA\Property(property="message", type="string", example="Seuls les comptes épargne actifs peuvent être bloqués"),
-     *             @OA\Property(property="errors", type="object")
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=404,
-     *         description="Compte non trouvé",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="success", type="boolean", example=false),
-     *             @OA\Property(property="message", type="string", example="Le Compte avec l'ID spécifié n'existe pas")
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=500,
-     *         description="Erreur serveur",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="success", type="boolean", example=false),
-     *             @OA\Property(property="message", type="string", example="Erreur serveur")
-     *         )
-     *     )
-     * )
-     */
-
-
-
-    /**
-     * @OA\Post(
      *     path="/comptes/{compte}/planifier-blocage",
      *     summary="Planifier le blocage d'un compte épargne",
      *     description="Planifie le blocage futur d'un compte épargne actif pour une durée déterminée",
@@ -656,7 +582,7 @@ class CompteController extends Controller
                 'unite' => $unite
             ], 'Blocage planifié avec succès');
 
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             // Gestion spécifique des erreurs de validation
             $errors = $e->errors();
             $messages = [];
@@ -761,30 +687,84 @@ class CompteController extends Controller
      * @OA\Post(
      *     path="/comptes",
      *     summary="Créer un nouveau compte bancaire",
-     *     description="Crée un nouveau compte bancaire avec un client existant ou nouveau",
+     *     description="Crée un nouveau compte bancaire avec un client existant ou nouveau. L'opération utilise une transaction pour garantir l'intégrité des données.",
      *     operationId="createCompte",
      *     tags={"Comptes"},
      *     @OA\RequestBody(
-     *         required=true,
-     *         @OA\JsonContent(
-     *             required={"type", "soldeInitial", "devise", "client"},
-     *             @OA\Property(property="type", type="string", enum={"epargne", "courant", "cheque"}, example="cheque"),
-     *             @OA\Property(property="soldeInitial", type="number", format="float", minimum=10000, example=500000),
-     *             @OA\Property(property="devise", type="string", enum={"FCFA", "EUR", "USD"}, example="FCFA"),
-     *             @OA\Property(property="client", type="object",
-     *                 oneOf={
-     *                     @OA\Schema(
-     *                         @OA\Property(property="id", type="string", format="uuid", description="ID du client existant"),
-     *                         @OA\Property(property="titulaire", type="string", example="Cheikh Sy"),
-     *                         @OA\Property(property="email", type="string", format="email", example="cheikh.sy@example.com"),
-     *                         @OA\Property(property="telephone", type="string", example="771234567"),
-     *                         @OA\Property(property="nci", type="string", example="1234567890123"),
-     *                         @OA\Property(property="adresse", type="string", example="Dakar, Sénégal")
-     *                     )
-     *                 }
-     *             )
-     *         )
-     *     ),
+      *         required=true,
+      *         @OA\JsonContent(
+      *             required={"type", "soldeInitial", "devise", "client"},
+      *             @OA\Property(property="type", type="string", enum={"epargne", "courant", "cheque"}, example="cheque"),
+      *             @OA\Property(property="soldeInitial", type="number", format="float", minimum=10000, example=500000),
+      *             @OA\Property(property="devise", type="string", enum={"FCFA", "EUR", "USD"}, example="FCFA"),
+      *             @OA\Property(property="client", type="object",
+      *                 oneOf={
+      *                     @OA\Schema(
+      *                         title="Client existant",
+      *                         description="Créer un compte pour un client déjà enregistré",
+      *                         @OA\Property(property="id", type="string", format="uuid", description="ID du client existant", example="550e8400-e29b-41d4-a716-446655440000")
+      *                     ),
+      *                     @OA\Schema(
+      *                         title="Nouveau client",
+      *                         description="Créer un compte avec un nouveau client",
+      *                         required={"titulaire", "email", "telephone", "nci", "adresse"},
+      *                         @OA\Property(property="titulaire", type="string", example="Cheikh Sy"),
+      *                         @OA\Property(property="email", type="string", format="email", example="cheikh.sy@example.com"),
+      *                         @OA\Property(property="telephone", type="string", example="771234567"),
+      *                         @OA\Property(property="nci", type="string", example="1234567890123"),
+      *                         @OA\Property(property="adresse", type="string", example="Dakar, Sénégal")
+      *                     )
+      *                 }
+      *             )
+      *         ),
+      *         @OA\Examples(
+      *             example="client_existant",
+      *             summary="Créer un compte pour un client existant",
+      *             description="Exemple de création d'un compte chèque pour un client déjà enregistré dans le système",
+      *             value={
+      *                 "type": "cheque",
+      *                 "soldeInitial": 500000,
+      *                 "devise": "FCFA",
+      *                 "client": {
+      *                     "id": "550e8400-e29b-41d4-a716-446655440000"
+      *                 }
+      *             }
+      *         ),
+      *         @OA\Examples(
+      *             example="nouveau_client",
+      *             summary="Créer un compte avec un nouveau client",
+      *             description="Exemple de création d'un compte épargne avec un nouveau client. Le système créera automatiquement le client et son compte utilisateur.",
+      *             value={
+      *                 "type": "epargne",
+      *                 "soldeInitial": 100000,
+      *                 "devise": "FCFA",
+      *                 "client": {
+      *                     "titulaire": "Fatou Diop",
+      *                     "email": "fatou.diop@example.com",
+      *                     "telephone": "776543210",
+      *                     "nci": "9876543210987",
+      *                     "adresse": "Thiès, Sénégal"
+      *                 }
+      *             }
+      *         ),
+      *         @OA\Examples(
+      *             example="compte_courant_nouveau_client",
+      *             summary="Créer un compte courant avec un nouveau client",
+      *             description="Exemple de création d'un compte courant avec un nouveau client professionnel",
+      *             value={
+      *                 "type": "courant",
+      *                 "soldeInitial": 1000000,
+      *                 "devise": "FCFA",
+      *                 "client": {
+      *                     "titulaire": "Entreprise ABC SARL",
+      *                     "email": "contact@entreprise-abc.sn",
+      *                     "telephone": "338501234",
+      *                     "nci": "SN123456789",
+      *                     "adresse": "Plateau, Dakar, Sénégal"
+      *                 }
+      *             }
+      *         )
+      *     ),
      *     @OA\Response(
      *         response=201,
      *         description="Compte créé avec succès",
@@ -835,7 +815,7 @@ class CompteController extends Controller
                 'Compte créé avec succès',
                 201
             );
-        } catch (\Illuminate\Database\QueryException $e) {
+        } catch (QueryException $e) {
             // Gestion des erreurs de base de données (contraintes d'unicité, etc.)
             if ($e->getCode() == 23000) { // Integrity constraint violation
                 return $this->error('Une contrainte d\'unicité a été violée', 400);

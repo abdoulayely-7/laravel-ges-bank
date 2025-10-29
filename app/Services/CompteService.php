@@ -8,6 +8,7 @@ use App\Http\Resources\CompteResource;
 use App\Models\User;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
@@ -26,18 +27,24 @@ class CompteService
             Log::info('Cache miss - Génération des données comptes', ['params' => $params]);
             $query = Compte::with('client.user');
 
+            // Filtres par défaut : comptes épargne et chèque actifs uniquement
+            $defaultTypes = ['epargne', 'cheque'];
+            $defaultStatut = 'actif';
+
+            // Appliquer le filtre type : utiliser la valeur fournie ou les types par défaut
             if (!empty($params['type'])) {
                 $query->where('type', $params['type']);
+            } else {
+                $query->whereIn('type', $defaultTypes);
             }
 
+            // Appliquer le filtre statut : utiliser la valeur fournie ou le statut actif par défaut
             if (!empty($params['statut'])) {
                 $query->where('statut', $params['statut']);
+            } else {
+                $query->where('statut', $defaultStatut);
             }
 
-            if (isset($params['actifs_epargne_cheque']) && filter_var($params['actifs_epargne_cheque'], FILTER_VALIDATE_BOOLEAN)) {
-                $query->whereIn('type', ['cheque', 'epargne'])
-                    ->where('statut', 'actif');
-            }
 
             if (!empty($params['search'])) {
                 $s = strtolower($params['search']);
@@ -100,36 +107,37 @@ class CompteService
     }
 
     /**
-     * Créer un nouveau compte bancaire
+     * Créer un nouveau compte bancaire avec transaction
      */
     public function creerCompte(array $data): Compte
     {
-        // 1. Vérifier si le client existe
-        $client = $this->trouverOuCreerClient($data['client']);
+        return DB::transaction(function () use ($data) {
+            // 1. Vérifier si le client existe ou en créer un nouveau
+            $client = $this->trouverOuCreerClient($data['client']);
 
-        // 2. Créer le compte
-        $compte = Compte::create([
-            'numero_compte' => null, // Sera généré automatiquement par le mutateur
-            'type' => $data['type'],
-            'devise' => $data['devise'],
-            'client_id' => $client->id,
-            'statut' => 'actif',
-            'date_creation' => now(),
-        ]);
+            // 2. Créer le compte
+            $compte = Compte::create([
+                'type' => $data['type'],
+                'devise' => $data['devise'],
+                'client_id' => $client->id,
+                'statut' => 'actif',
+                'date_creation' => now(),
+            ]);
 
-        $compte->plainPassword = $client->plainPassword;
+            $compte->plainPassword = $client->plainPassword;
 
-        // 3. Créer la transaction initiale de dépôt
-        $transaction = $compte->transactions()->create([
-            'type' => 'depot',
-            'montant' => $data['soldeInitial'],
-            'description' => 'Ouverture de compte - dépôt initial',
-            'statut' => 'complete',
-            'date' => now(),
-        ]);
+            // 3. Créer la transaction initiale de dépôt
+            $transaction = $compte->transactions()->create([
+                'type' => 'depot',
+                'montant' => $data['soldeInitial'],
+                'description' => 'Ouverture de compte - dépôt initial',
+                'statut' => 'complete',
+                'date' => now(),
+            ]);
 
-        // Recharger le compte avec les transactions pour recalculer le solde
-        return $compte->fresh(['client.user', 'transactions']);
+            // Recharger le compte avec les transactions pour recalculer le solde
+            return $compte->fresh(['client.user', 'transactions']);
+        });
     }
 
     /**

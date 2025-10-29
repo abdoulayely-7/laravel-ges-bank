@@ -320,7 +320,7 @@
                     {
                         "name": "type",
                         "in": "query",
-                        "description": "Type de compte",
+                        "description": "Type de compte (par défaut : épargne et chèque uniquement)",
                         "required": false,
                         "schema": {
                             "type": "string",
@@ -334,13 +334,14 @@
                     {
                         "name": "statut",
                         "in": "query",
-                        "description": "Statut du compte",
+                        "description": "Statut du compte (par défaut : actif uniquement)",
                         "required": false,
                         "schema": {
                             "type": "string",
                             "enum": [
                                 "actif",
-                                "bloque"
+                                "bloque",
+                                "ferme"
                             ]
                         }
                     },
@@ -380,20 +381,6 @@
                             "enum": [
                                 "asc",
                                 "desc"
-                            ]
-                        }
-                    },
-                    {
-                        "name": "actifs_epargne_cheque",
-                        "in": "query",
-                        "description": "Filtrer uniquement les comptes actifs de type épargne ou chèque",
-                        "required": false,
-                        "schema": {
-                            "type": "string",
-                            "default": "false",
-                            "enum": [
-                                "true",
-                                "false"
                             ]
                         }
                     }
@@ -530,7 +517,7 @@
                     "Comptes"
                 ],
                 "summary": "Créer un nouveau compte bancaire",
-                "description": "Crée un nouveau compte bancaire avec un client existant ou nouveau",
+                "description": "Crée un nouveau compte bancaire avec un client existant ou nouveau. L'opération utilise une transaction pour garantir l'intégrité des données.",
                 "operationId": "createCompte",
                 "requestBody": {
                     "required": true,
@@ -572,12 +559,29 @@
                                         "type": "object",
                                         "oneOf": [
                                             {
+                                                "title": "Client existant",
+                                                "description": "Créer un compte pour un client déjà enregistré",
                                                 "properties": {
                                                     "id": {
                                                         "description": "ID du client existant",
                                                         "type": "string",
-                                                        "format": "uuid"
-                                                    },
+                                                        "format": "uuid",
+                                                        "example": "550e8400-e29b-41d4-a716-446655440000"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            },
+                                            {
+                                                "title": "Nouveau client",
+                                                "description": "Créer un compte avec un nouveau client",
+                                                "required": [
+                                                    "titulaire",
+                                                    "email",
+                                                    "telephone",
+                                                    "nci",
+                                                    "adresse"
+                                                ],
+                                                "properties": {
                                                     "titulaire": {
                                                         "type": "string",
                                                         "example": "Cheikh Sy"
@@ -1611,8 +1615,41 @@
                         "type": "string",
                         "enum": [
                             "actif",
-                            "bloque"
+                            "bloque",
+                            "ferme"
                         ]
+                    },
+                    "motifBlocage": {
+                        "description": "Motif du blocage si le compte est bloqué",
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "dateDebutBlocage": {
+                        "description": "Date de début du blocage planifié",
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "dureeBlocage": {
+                        "description": "Informations sur la durée du blocage",
+                        "properties": {
+                            "valeur": {
+                                "description": "Valeur de la durée",
+                                "type": "integer"
+                            },
+                            "unite": {
+                                "description": "Unité de la durée",
+                                "type": "string",
+                                "enum": [
+                                    "minutes",
+                                    "heures",
+                                    "jours",
+                                    "mois"
+                                ]
+                            }
+                        },
+                        "type": "object",
+                        "nullable": true
                     },
                     "metadata": {
                         "properties": {
