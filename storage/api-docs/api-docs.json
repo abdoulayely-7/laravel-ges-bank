@@ -1245,6 +1245,191 @@
                     }
                 }
             }
+        },
+        "/comptes/{compte}/planifier-blocage": {
+            "post": {
+                "tags": [
+                    "Comptes"
+                ],
+                "summary": "Planifier le blocage d'un compte épargne",
+                "description": "Planifie le blocage futur d'un compte épargne actif pour une durée déterminée",
+                "operationId": "planifierBlocage",
+                "parameters": [
+                    {
+                        "name": "compte",
+                        "in": "path",
+                        "description": "ID UUID du compte à planifier pour blocage",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "dateDebut",
+                                    "duree",
+                                    "unite",
+                                    "motif"
+                                ],
+                                "properties": {
+                                    "dateDebut": {
+                                        "description": "Date et heure de début du blocage",
+                                        "type": "string",
+                                        "format": "date-time",
+                                        "example": "2025-11-01T10:00:00Z"
+                                    },
+                                    "duree": {
+                                        "description": "Durée du blocage",
+                                        "type": "integer",
+                                        "minimum": 1,
+                                        "example": 30
+                                    },
+                                    "unite": {
+                                        "description": "Unité de la durée",
+                                        "type": "string",
+                                        "enum": [
+                                            "minutes",
+                                            "heures",
+                                            "jours",
+                                            "mois"
+                                        ],
+                                        "example": "jours"
+                                    },
+                                    "motif": {
+                                        "description": "Motif du blocage",
+                                        "type": "string",
+                                        "example": "Maintenance programmée"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Blocage planifié avec succès",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Blocage planifié avec succès"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "compteId": {
+                                                    "type": "string",
+                                                    "format": "uuid",
+                                                    "example": "550e8400-e29b-41d4-a716-446655440000"
+                                                },
+                                                "dateDebutBlocage": {
+                                                    "type": "string",
+                                                    "format": "date-time",
+                                                    "example": "2025-11-01T10:00:00Z"
+                                                },
+                                                "dateFinBlocagePrevue": {
+                                                    "type": "string",
+                                                    "format": "date-time",
+                                                    "example": "2025-12-01T10:00:00Z"
+                                                },
+                                                "motif": {
+                                                    "type": "string",
+                                                    "example": "Maintenance programmée"
+                                                },
+                                                "duree": {
+                                                    "type": "integer",
+                                                    "example": 30
+                                                },
+                                                "unite": {
+                                                    "type": "string",
+                                                    "example": "jours"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Données invalides ou compte ne peut pas être planifié",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Seuls les comptes épargne actifs peuvent être planifiés pour blocage"
+                                        },
+                                        "errors": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Compte non trouvé",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Le Compte avec l'ID spécifié n'existe pas"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Erreur serveur",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Erreur serveur"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     },
     "components": {

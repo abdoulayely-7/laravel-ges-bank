@@ -546,7 +546,71 @@ class CompteController extends Controller
 
 
     /**
-     * Planifier le blocage d'un compte
+     * @OA\Post(
+     *     path="/comptes/{compte}/planifier-blocage",
+     *     summary="Planifier le blocage d'un compte épargne",
+     *     description="Planifie le blocage futur d'un compte épargne actif pour une durée déterminée",
+     *     operationId="planifierBlocage",
+     *     tags={"Comptes"},
+     *     @OA\Parameter(
+     *         name="compte",
+     *         in="path",
+     *         description="ID UUID du compte à planifier pour blocage",
+     *         required=true,
+     *         @OA\Schema(type="string", format="uuid")
+     *     ),
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"dateDebut", "duree", "unite", "motif"},
+     *             @OA\Property(property="dateDebut", type="string", format="date-time", example="2025-11-01T10:00:00Z", description="Date et heure de début du blocage"),
+     *             @OA\Property(property="duree", type="integer", example=30, minimum=1, description="Durée du blocage"),
+     *             @OA\Property(property="unite", type="string", enum={"minutes", "heures", "jours", "mois"}, example="jours", description="Unité de la durée"),
+     *             @OA\Property(property="motif", type="string", example="Maintenance programmée", description="Motif du blocage")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Blocage planifié avec succès",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Blocage planifié avec succès"),
+     *             @OA\Property(property="data", type="object",
+     *                 @OA\Property(property="compteId", type="string", format="uuid", example="550e8400-e29b-41d4-a716-446655440000"),
+     *                 @OA\Property(property="dateDebutBlocage", type="string", format="date-time", example="2025-11-01T10:00:00Z"),
+     *                 @OA\Property(property="dateFinBlocagePrevue", type="string", format="date-time", example="2025-12-01T10:00:00Z"),
+     *                 @OA\Property(property="motif", type="string", example="Maintenance programmée"),
+     *                 @OA\Property(property="duree", type="integer", example=30),
+     *                 @OA\Property(property="unite", type="string", example="jours")
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=400,
+     *         description="Données invalides ou compte ne peut pas être planifié",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Seuls les comptes épargne actifs peuvent être planifiés pour blocage"),
+     *             @OA\Property(property="errors", type="object")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Compte non trouvé",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Le Compte avec l'ID spécifié n'existe pas")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=500,
+     *         description="Erreur serveur",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Erreur serveur")
+     *         )
+     *     )
+     * )
      */
     public function planifierBlocage(Request $request, Compte $compte)
     {
