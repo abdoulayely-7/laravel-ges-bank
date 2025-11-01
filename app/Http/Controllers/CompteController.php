@@ -150,7 +150,18 @@ class CompteController extends Controller
     public function index(CompteIndexRequest $request)
     {
         try {
-            $data = $this->compteService->rechercherEtPaginer($request->validated());
+            $user = auth()->user();
+
+            // Si c'est un client, filtrer uniquement ses comptes
+            if ($user->client) {
+                $params = $request->validated();
+                $params['client_id'] = $user->client->id;
+                $data = $this->compteService->rechercherEtPaginer($params);
+            } else {
+                // Admin peut voir tous les comptes
+                $data = $this->compteService->rechercherEtPaginer($request->validated());
+            }
+
             return $this->success(
                 $data,
                 'Liste des comptes récupérée avec succès'
@@ -274,11 +285,12 @@ class CompteController extends Controller
     public function getCompteById(Compte $compte)
     {
         try {
-            // $compte = Compte::find($compteId);
+            $user = auth()->user();
 
-            // if (!$compte) {
-            //     throw new NotFoundException('Compte', $compteId);
-            // }
+            // Vérifier que le client ne peut accéder qu'à ses propres comptes
+            if ($user->client && $compte->client_id !== $user->client->id) {
+                return $this->error('Accès non autorisé à ce compte', 403);
+            }
 
             return $this->success(
                 new CompteDetailResource($compte->load('client.user')),
@@ -417,6 +429,13 @@ class CompteController extends Controller
     public function updateClient(UpdateClientRequest $request, Compte $compte)
     {
         try {
+            $user = auth()->user();
+
+            // Vérifier que le client ne peut modifier que ses propres comptes
+            if ($user->client && $compte->client_id !== $user->client->id) {
+                return $this->error('Accès non autorisé à ce compte', 403);
+            }
+
             $validatedData = $request->validated();
 
             // Préparer les données de mise à jour
@@ -541,6 +560,13 @@ class CompteController extends Controller
     public function planifierBlocage(Request $request, Compte $compte)
     {
         try {
+            $user = auth()->user();
+
+            // Vérifier que le client ne peut planifier le blocage que de ses propres comptes
+            if ($user->client && $compte->client_id !== $user->client->id) {
+                return $this->error('Accès non autorisé à ce compte', 403);
+            }
+
             $validatedData = $request->validate([
                 'dateDebut' => 'required|date|after:now',
                 'duree' => 'required|integer|min:1',
@@ -657,6 +683,13 @@ class CompteController extends Controller
     public function destroy(Compte $compte)
     {
         try {
+            $user = auth()->user();
+
+            // Vérifier que le client ne peut supprimer que ses propres comptes
+            if ($user->client && $compte->client_id !== $user->client->id) {
+                return $this->error('Accès non autorisé à ce compte', 403);
+            }
+
             // Vérifier si le compte a un solde positif
 //            if ($compte->solde > 0) {
 //                return $this->error(

@@ -18,6 +18,11 @@ return new class extends Migration
         // Modifier aussi les autres tables Passport si nécessaire
         DB::statement('ALTER TABLE oauth_auth_codes ALTER COLUMN user_id TYPE VARCHAR(255)');
         DB::statement('ALTER TABLE oauth_clients ALTER COLUMN user_id TYPE VARCHAR(255)');
+
+        // Modifier les colonnes boolean pour être compatibles avec PostgreSQL
+        DB::statement('ALTER TABLE oauth_clients ALTER COLUMN personal_access_client TYPE BOOLEAN USING personal_access_client::BOOLEAN');
+        DB::statement('ALTER TABLE oauth_clients ALTER COLUMN password_client TYPE BOOLEAN USING password_client::BOOLEAN');
+        DB::statement('ALTER TABLE oauth_clients ALTER COLUMN revoked TYPE BOOLEAN USING revoked::BOOLEAN');
     }
 
     /**

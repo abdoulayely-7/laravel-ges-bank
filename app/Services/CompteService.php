@@ -27,6 +27,11 @@ class CompteService
             Log::info('Cache miss - Génération des données comptes', ['params' => $params]);
             $query = Compte::with('client.user');
 
+            // Filtrer par client si spécifié (pour les clients qui ne voient que leurs comptes)
+            if (!empty($params['client_id'])) {
+                $query->where('client_id', $params['client_id']);
+            }
+
             // Filtres par défaut : comptes épargne et chèque actifs uniquement
             $defaultTypes = ['epargne', 'cheque'];
             $defaultStatut = 'actif';
@@ -204,11 +209,10 @@ class CompteService
             'nci' => $clientData['nci'],
         ]);
 
-// Attacher temporairement le mot de passe et le code de vérification en mémoire
+        // Attacher temporairement le mot de passe et le code de vérification en mémoire
         $client->plainPassword = $plainPassword;
         $client->verificationCode = $verificationCode;
 
         return $client;
-
     }
 }

@@ -56,16 +56,26 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 //});
 
 Route::prefix('v1')->group(function () {
-    Route::get('comptes', [CompteController::class, 'index']);
-    Route::post('comptes', [CompteController::class, 'store']);
-    Route::get('comptes/{numero}', [CompteController::class, 'show']);
-    Route::get('comptes/id/{compte}', [CompteController::class, 'getCompteById'])->name('comptes.show.id');
-    Route::get('comptes/client/{telephone}', [CompteController::class, 'getComptesByTelephone']);
-    Route::delete('comptes/{compte}', [CompteController::class, 'destroy']);
-    Route::patch('comptes/{compte}', [CompteController::class, 'updateClient']);
-    Route::post('comptes/{compte}/planifier-blocage', [CompteController::class, 'planifierBlocage']);
-    Route::post('trigger-block-job', function () {
-        \App\Jobs\ProcessScheduledAccountBlocks::dispatch();
-        return response()->json(['message' => 'Block job triggered']);
+    // Routes d'authentification (non protégées)
+    Route::prefix('auth')->group(function () {
+        Route::post('login', [AuthController::class, 'login']);
+        Route::post('refresh', [AuthController::class, 'refresh']);
+        Route::post('logout', [AuthController::class, 'logout'])->middleware('auth:api');
+    });
+
+    // Toutes les routes nécessitent maintenant une authentification
+    Route::middleware(['auth:api'])->group(function () {
+        Route::get('comptes', [CompteController::class, 'index']);
+        Route::post('comptes', [CompteController::class, 'store']);
+        Route::get('comptes/{numero}', [CompteController::class, 'show']);
+        Route::get('comptes/id/{compte}', [CompteController::class, 'getCompteById'])->name('comptes.show.id');
+        Route::get('comptes/client/{telephone}', [CompteController::class, 'getComptesByTelephone']);
+        Route::delete('comptes/{compte}', [CompteController::class, 'destroy']);
+        Route::patch('comptes/{compte}', [CompteController::class, 'updateClient']);
+        Route::post('comptes/{compte}/planifier-blocage', [CompteController::class, 'planifierBlocage']);
+        Route::post('trigger-block-job', function () {
+            \App\Jobs\ProcessScheduledAccountBlocks::dispatch();
+            return response()->json(['message' => 'Block job triggered']);
+        });
     });
 });

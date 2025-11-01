@@ -42,10 +42,6 @@ class User extends Authenticatable
         return $this->hasOne(Admin::class);
     }
 
-    public function token()
-    {
-        return $this->hasMany(\Laravel\Passport\Token::class);
-    }
 
     public function getRoleAttribute()
     {

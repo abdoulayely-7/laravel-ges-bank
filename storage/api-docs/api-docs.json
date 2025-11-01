@@ -1693,6 +1693,14 @@
                 },
                 "type": "object"
             }
+        },
+        "securitySchemes": {
+            "bearerAuth": {
+                "type": "http",
+                "scheme": "bearer",
+                "bearerFormat": "JWT",
+                "description": "Enter your Bearer token in the format: Bearer {token}"
+            }
         }
     },
     "tags": [
@@ -1703,6 +1711,11 @@
         {
             "name": "Comptes",
             "description": "Comptes"
+        }
+    ],
+    "security": [
+        {
+            "bearerAuth": []
         }
     ]
 }
