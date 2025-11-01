@@ -26,7 +26,11 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'verification_code',
+        'verification_code_expires_at',
+        'is_verified',
     ];
+
 
     public function client()
     {
@@ -77,5 +81,7 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
+        'is_verified' => 'boolean',
+        'verification_code_expires_at' => 'datetime',
     ];
 }

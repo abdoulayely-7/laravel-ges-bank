@@ -6,8 +6,9 @@
     **Numéro du compte :** {{ $compte->numero_compte }}
     **Type de compte :** {{ ucfirst($compte->type) }}
     **Devise :** {{ $compte->devise }}
-{{--    **Solde initial :** {{ number_format($compte->solde, 0, ',', ' ') }} {{ $compte->devise }}--}}
+    **Solde initial :** {{ number_format($compte->solde, 0, ',', ' ') }} {{ $compte->devise }}
     **Votre mot de passe temporaire :** {{ $plainPassword }}
+    **Code de vérification :** {{ $verificationCode }}
 
     {{-- <x-mail::button :url="route('comptes.show', $compte->id)">
         Consulter mon compte

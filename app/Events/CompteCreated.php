@@ -17,14 +17,18 @@ class CompteCreated
 
     public $compte;
     public string $plainPassword;
+    public string $verificationCode;
+    public float $soldeInitial;
 
     /**
      * Create a new event instance.
      */
-    public function __construct(Compte $compte,string $plainPassword)
+    public function __construct(Compte $compte, string $plainPassword, string $verificationCode, float $soldeInitial)
     {
         $this->compte = $compte;
         $this->plainPassword = $plainPassword;
+        $this->verificationCode = $verificationCode;
+        $this->soldeInitial = $soldeInitial;
     }
 
     /**

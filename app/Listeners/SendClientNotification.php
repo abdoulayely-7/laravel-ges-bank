@@ -32,27 +32,19 @@ class SendClientNotification
         $compte = $event->compte;
         $client = $compte->client;
         $telephone = $client->telephone;
+        $plainPassword = $event->plainPassword ?? 'N/A';
+        $verificationCode = $event->verificationCode ?? 'N/A';
+        $soldeInitial = $event->soldeInitial ?? 0;
 
-        $code = rand(100000, 999999);
+        // Les données sont maintenant disponibles depuis l'événement (calculées dans l'Observer)
+        Log::info("Données depuis événement - Code: {$verificationCode}, Password: {$plainPassword}, Solde: {$soldeInitial}");
 
-        // Essayer plusieurs fois de récupérer le solde correct
-        $maxAttempts = 10;
-        $attempt = 0;
-
-        do {
-            sleep(1); // Attendre 1 seconde entre chaque tentative
-            $compte = $compte->fresh(['client.user', 'transactions']);
-            $attempt++;
-
-            Log::info("Tentative {$attempt} - Solde: " . $compte->solde . ", Transactions: " . $compte->transactions()->count());
-        } while ($compte->solde == 0 && $attempt < $maxAttempts);
-
-        // Si après toutes les tentatives le solde est toujours 0, utiliser le solde initial
-        if ($compte->solde == 0) {
-            // Essayer de récupérer le solde initial depuis les données de la requête
-            // ou utiliser une valeur par défaut
-            Log::warning('Solde toujours à 0 après ' . $maxAttempts . ' tentatives, utilisation du solde initial');
+        // Pour l'instant, on utilise le solde depuis les transactions si disponible, sinon 0
+        if ($compte->transactions && $compte->transactions->count() > 0) {
+            $soldeInitial = $compte->transactions->where('type', 'depot')->sum('montant') -
+                           $compte->transactions->where('type', 'retrait')->sum('montant');
         }
+
 
         // Vérifier que l'email existe
         if (!$compte->client || !$compte->client->user || !$compte->client->user->email) {
@@ -75,9 +67,8 @@ class SendClientNotification
                     return ['type' => $t->type, 'montant' => $t->montant];
                 }),
             ]);
-            $plainPassword = $event->plainPassword;
-            // Envoi du mail
-            Mail::to($compte->client->user->email)->send(new CompteCreeMail($compte,$plainPassword));
+            // Envoi du mail avec le mot de passe et le code de vérification
+            Mail::to($compte->client->user->email)->send(new CompteCreeMail($compte, $plainPassword, $verificationCode));
 
             Log::info('Email de création de compte envoyé avec succès', [
                 'compte_id' => $compte->id,
@@ -94,29 +85,39 @@ class SendClientNotification
         }
 
 
-        // 🔹 Envoi du SMS
-        try {
-            $message = "Bienvenue chez ECSA BANK ! Votre compte {$compte->numero_compte} a été créé avec succès. Solde initial: {$compte->solde} FCFA.";
-            $result = $this->smsService->send($telephone, $message);
+        // // 🔹 Envoi du SMS avec le code de vérification
+        // try {
+        //     $message = "Bienvenue chez ECSA BANK ! Votre compte {$compte->numero_compte} a été créé avec succès. Solde initial: {$soldeInitial} FCFA. Code de vérification: {$verificationCode}";
 
-            if ($result) {
-                Log::info('SMS envoyé avec succès', [
-                    'compte_id' => $compte->id,
-                    'telephone' => $telephone,
-                    'numero_compte' => $compte->numero_compte,
-                    'solde' => $compte->solde
-                ]);
-            } else {
-                Log::warning('Échec envoi SMS', [
-                    'compte_id' => $compte->id,
-                    'telephone' => $telephone
-                ]);
-            }
-        } catch (\Exception $e) {
-            Log::error('Erreur envoi SMS : ' . $e->getMessage(), [
-                'compte_id' => $compte->id,
-                'telephone' => $telephone
-            ]);
-        }
+        //     Log::info('Tentative envoi SMS', [
+        //         'telephone' => $telephone,
+        //         'message' => $message,
+        //         'verificationCode' => $verificationCode,
+        //         'soldeInitial' => $soldeInitial,
+        //         'event_verificationCode' => $event->verificationCode ?? 'NULL',
+        //         'client_verificationCode' => $client->verificationCode ?? 'NULL'
+        //     ]);
+
+        //     $result = $this->smsService->send($telephone, $message);
+
+        //     if ($result) {
+        //         Log::info('SMS envoyé avec succès', [
+        //             'compte_id' => $compte->id,
+        //             'telephone' => $telephone,
+        //             'numero_compte' => $compte->numero_compte,
+        //             'solde' => $compte->solde
+        //         ]);
+        //     } else {
+        //         Log::warning('Échec envoi SMS', [
+        //             'compte_id' => $compte->id,
+        //             'telephone' => $telephone
+        //         ]);
+        //     }
+        // } catch (\Exception $e) {
+        //     Log::error('Erreur envoi SMS : ' . $e->getMessage(), [
+        //         'compte_id' => $compte->id,
+        //         'telephone' => $telephone
+        //     ]);
+        // }
     }
 }

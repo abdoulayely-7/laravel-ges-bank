@@ -16,14 +16,16 @@ class CompteCreeMail extends Mailable
 
     public Compte $compte;
     public string $plainPassword;
+    public string $verificationCode;
 
     /**
      * Create a new message instance.
      */
-    public function __construct(Compte $compte, string $plainPassword)
+    public function __construct(Compte $compte, string $plainPassword, string $verificationCode)
     {
         $this->compte = $compte;
         $this->plainPassword = $plainPassword;
+        $this->verificationCode = $verificationCode;
     }
 
 
@@ -47,6 +49,7 @@ class CompteCreeMail extends Mailable
             with: [
                 'compte' => $this->compte,
                 'plainPassword' => $this->plainPassword,
+                'verificationCode' => $this->verificationCode,
             ]
         );
     }

@@ -28,9 +28,19 @@ class CompteObserver
      */
     public function created(Compte $compte): void
     {
-        $plainPassword = $compte->client->plainPassword ?? 'N/A';
+        // Attendre que la transaction soit complètement validée
+        sleep(2);
 
-        event(new CompteCreated($compte, $plainPassword));
+        // Recharger le compte avec toutes les relations
+        $compte = $compte->fresh(['client.user', 'transactions']);
+
+        $plainPassword = $compte->client->plainPassword ?? 'Mot de passe généré automatiquement';
+        $verificationCode = $compte->client->user->verification_code ?? 'N/A';
+
+        // Le solde initial est passé depuis le service
+        $soldeInitial = $compte->solde_initial_temp ?? 0;
+
+        event(new CompteCreated($compte, $plainPassword, $verificationCode, $soldeInitial));
 
         // Invalidation fine du cache avec tags
         Cache::tags(['comptes'])->flush();

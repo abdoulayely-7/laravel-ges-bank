@@ -124,7 +124,9 @@ class CompteService
                 'date_creation' => now(),
             ]);
 
-            $compte->plainPassword = $client->plainPassword;
+            // Récupérer les valeurs temporaires générées (non persistées)
+            $plainPassword = $client->plainPassword ?? null;
+            $verificationCode = $client->verificationCode ?? null;
 
             // 3. Créer la transaction initiale de dépôt
             $transaction = $compte->transactions()->create([
@@ -135,8 +137,23 @@ class CompteService
                 'date' => now(),
             ]);
 
-            // Recharger le compte avec les transactions pour recalculer le solde
-            return $compte->fresh(['client.user', 'transactions']);
+            // Recharger le compte avec les relations pour recalculer le solde
+            $compte = $compte->fresh(['client.user', 'transactions']);
+
+            // Attacher en mémoire (non persisté) le mot de passe et le code de vérification
+            // afin que l'observer / listeners qui reçoivent l'instance puissent y accéder
+            if ($plainPassword !== null) {
+                $compte->plainPassword = $plainPassword;
+            }
+
+            if ($verificationCode !== null) {
+                $compte->verificationCode = $verificationCode;
+            }
+
+            // Attacher aussi le solde initial
+            $compte->solde_initial_temp = $data['soldeInitial'];
+
+            return $compte;
         });
     }
 
@@ -164,11 +181,17 @@ class CompteService
         // Générer un mot de passe temporaire
         $plainPassword = Str::random(8); // Mot de passe lisible
 
+        // Générer un code de vérification à 6 chiffres
+        $verificationCode = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+
         // Créer un nouvel utilisateur
         $user = User::create([
             'name' => $clientData['titulaire'],
             'email' => $clientData['email'],
             'password' => bcrypt($plainPassword), // Hash du mot de passe
+            'verification_code' => $verificationCode,
+            'verification_code_expires_at' => now()->addMinutes(30), // Expire dans 30 minutes
+            'is_verified' => DB::raw('false'),
         ]);
 
 
@@ -181,8 +204,9 @@ class CompteService
             'nci' => $clientData['nci'],
         ]);
 
-// Attacher temporairement le mot de passe en mémoire
+// Attacher temporairement le mot de passe et le code de vérification en mémoire
         $client->plainPassword = $plainPassword;
+        $client->verificationCode = $verificationCode;
 
         return $client;
 
